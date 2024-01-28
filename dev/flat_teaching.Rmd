@@ -1,0 +1,779 @@
+---
+title: "flat_teaching.Rmd for working package"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{=html}
+<!-- 
+Run this 'development' chunk
+
+Store every call to library() that you need to run chunks line by line, as in a classical Rmd for analysis
+-->
+```
+```{r development, include=FALSE}
+library(testthat)
+library(rvest)
+library(httr2)
+```
+
+```{=html}
+<!--
+# Description of your package
+
+This will fill the description of your package.
+Fill and run the content of this chunk, before anything else. 
+
+Note: when you will use other flat templates, this part will be in a separate file. Do not be surprised!
+-->
+```
+```{r description, eval=FALSE}
+# Describe your package
+fusen::fill_description(
+  pkg = here::here(),
+  fields = list(
+    Title = "Breeding Tools",
+    Description = "An R package that can automatically or periodically download data from the Nedap website in pig farm.",
+    `Authors@R` = c(
+      person("Guo Meng", email = "tony2015116@163.com", role = c("aut", "cre")),
+      person(given = "Guo Meng", role = "cph")
+    )
+  ),
+  overwrite=T
+)
+# Define License with use_*_license()
+usethis::use_mit_license("Guo Meng")
+```
+
+# Add one to any value
+
+This is the first tool of our wonderful package. You can add `1` to any `value` using function `add_one()`.
+
+```{=html}
+<!-- 
+This first section shows:
+
+- the three parts necessary for a package: 'function', 'examples' and 'tests'.  
+  + Note that the three following chunks have names accordingly.
+
+-->
+```
+# get_chromedriver
+
+```{r function-get_chromedriver}
+#' Title
+#' 
+#' Description
+#' 
+#' @param dest_dir The path of chrome browser dirver and selenium server
+#' 
+#' @return NULL
+#' @importFrom httr2 "resp_status" "req_error" "req_perform" "req_retry" "req_user_agent" "req_cache" "request" "resp_body_json" "resp_body_string"
+#' @importFrom utils "download.file" "unzip" "tail"
+#' @export
+
+get_chromedriver <- function(dest_dir) {
+  if (!is.character(dest_dir) || dest_dir == "") {
+    stop("Error: 'dest_dir' argument must be a valid non-empty string.")
+  }
+  # Check if Google Chrome is installed and get its version and platform information
+  chrome_info <- browser_check()
+
+  major_ver <- as.integer(chrome_info$Chrome$main_version)
+  platform <- chrome_info$Chrome$platform
+
+  check_and_update_chromedriver(dest_dir, major_ver, platform)
+  return(invisible(NULL))
+}
+
+browser_check <- function() {
+  # Check if the operating system is Windows
+  if (Sys.info()["sysname"] != "Windows") {
+    #cat(red_dot, "This function only supports Windows operating systems.\n")
+    cat(crayon::red("\u25CF"), "This function only supports Windows operating systems.\n")
+    return(NULL)
+  }
+
+  # Define the list of browsers and their registry keys
+  browsers <- get_supported_browsers()
+
+  # Get platform information
+  platform_info <- get_platform_info()
+
+  # Initialize a flag to track if the browser is found
+  browser_found <- FALSE
+
+  # Initialize a list to store results
+  result <- list()
+
+  # Iterate over each browser to check its installation status
+  for (browser in browsers) {
+    # Execute the registry query command
+    tryCatch({
+      reg_query <- system(paste("reg query", shQuote(browser$reg_key),
+                                "/v", browser$version_var), intern = TRUE)
+      if (length(reg_query) > 0) {
+        # Extract the browser version
+        browser_version <- regmatches(reg_query, regexpr("\\d+(\\.\\d+)*", reg_query))
+        # Extract the main version number
+        main_version <- unlist(strsplit(browser_version, "\\."))[1]
+        if (tolower(browser$name) == "chrome") {
+          #cat(green_dot, "Chrome browser was installed on this computer.\n")
+          cat(crayon::green("\u25CF"), "Chrome browser was installed on this computer.\n")
+          browser_found <- TRUE
+          # Add the main version and platform to the results
+          result[[browser$name]] <- list("main_version" = main_version, "platform" = platform_info)
+          break
+        }
+      }
+    }, error = function(e) {
+      # If an error occurs, continue to the next browser
+    })
+  }
+
+  # If Chrome browser is not found
+  if (!browser_found) {
+    #cat(red_dot, "Chrome browser is not installed on this computer.\n")
+    cat(crayon::red("\u25CF"), "Chrome browser is not installed on this computer.\n")
+  }
+
+  # Return the result list
+  return(result)
+}
+# Helper function to define the supported browsers
+get_supported_browsers <- function() {
+  list(
+    list(name = "Chrome", reg_key = "HKEY_CURRENT_USER\\Software\\Google\\Chrome\\BLBeacon", version_var = "version")
+    #list(name = "Microsoft Edge", reg_key = "HKEY_CURRENT_USER\\Software\\Microsoft\\Edge\\BLBeacon", version_var = "version")
+  )
+}
+# Helper function to get platform information
+get_platform_info <- function() {
+  sys_info <- Sys.info()
+  os_type <- sys_info["sysname"]
+  machine_type <- .Platform$r_arch
+  bit <- ifelse(.Machine$sizeof.pointer == 4, "32", "64")
+
+  if (os_type == "Linux") {
+    return(paste0("linux-", bit))
+  } else if (os_type == "Darwin") {
+    return(paste0("mac-", machine_type, "-", bit))
+  } else if (os_type == "Windows") {
+    return(paste0("win", bit))
+  } else {
+    return("unknown-platform")
+  }
+}
+# Chromedriver check before download
+check_and_update_chromedriver <- function(dest_dir, major_ver, platform) {
+  # Path to the chromedriver version directory
+  chromedriver_version_dir <- file.path(dest_dir, "chromedriver", as.character(major_ver))
+  chromedriver_exe_path <- file.path(chromedriver_version_dir, "chromedriver.exe")
+
+  # Check if the chromedriver version directory exists and is not empty
+  if (!dir.exists(chromedriver_version_dir) || length(list.files(chromedriver_version_dir)) == 0) {
+    download_url <- check_chromedriver_url(major_ver, platform)
+    download_chromedriver(download_url, dest_dir)  # Replace with actual download function and URL
+    return()
+  }
+
+  # Proceed with version comparison
+  if (major_ver > as.numeric(basename(chromedriver_version_dir))) {
+    download_url <- check_chromedriver_url(major_ver, platform)
+    download_chromedriver(download_url, dest_dir)  # Replace with actual download function and URL
+  } else if (major_ver == as.numeric(basename(chromedriver_version_dir))) {
+    if (file.exists(chromedriver_exe_path)) {
+      #cat(green_dot, "An appropriate version of chromedriver.exe is already present.\n")
+      cat(crayon::green("\u25CF"), "An appropriate version of chromedriver.exe is already present.\n")
+    } else {
+      download_url <- check_chromedriver_url(major_ver, platform)
+      download_chromedriver(download_url, dest_dir)  # Replace with actual download function and URL
+    }
+  } else {
+    #cat(red_dot, "Please update your Google Chrome browser to the latest version.\n")
+    cat(crayon::red("\u25CF"), "Please update your Google Chrome browser to the latest version.\n")
+  }
+}
+# Check chromedriver url
+check_chromedriver_url <- function(major_ver, platform) {
+  # Retrieve the download URL for chromedriver
+  chromedriver_url <- find_chromedriver_url(major_ver, platform)
+
+  # Check the chromedriver URL
+  if (!is.null(chromedriver_url) && nzchar(chromedriver_url)) {
+    #cat(green_dot, "Chromedriver download URL successfully retrieved.\n")
+    cat(crayon::green("\u25CF"), "Chromedriver download URL successfully retrieved.\n")
+    return(chromedriver_url)
+  } else {
+    #cat(red_dot, "Failed to retrieve Chromedriver download URL.\n")
+    cat(crayon::red("\u25CF"), "Failed to retrieve Chromedriver download URL.\n")
+    return(NA)
+  }
+}
+# Download chromdriver
+download_chromedriver <- function(download_url, dest_dir) {
+  # Extract main version number from URL
+  main_version <- sub(".*/(\\d+).*", "\\1", download_url)
+
+  # Create new directory for the specific version
+  version_dir <- file.path(dest_dir, "chromedriver", main_version)
+  if (!dir.exists(version_dir)) {
+    dir.create(version_dir, recursive = TRUE)
+  }
+
+  # Prepare download path
+  download_filename <- paste0("chromedriver-", main_version, ".zip")
+  download_path <- file.path(dest_dir, download_filename)
+
+  # Download the file with a progress bar
+  tryCatch({
+    download.file(download_url, destfile = download_path, mode = "wb", quiet = T)
+  }, error = function(e) {
+    #cat(red_dot, "Chromedriver download failed. \n")
+    cat(crayon::red("\u25CF"), "Chromedriver download failed. \n")
+    return()
+  })
+
+  # Unzip the downloaded zip file to the version directory
+  unzip_status <- try({
+    unzip(download_path, exdir = version_dir)
+    TRUE
+  }, silent = TRUE)
+
+  # Check if unzip was successful
+  if (unzip_status != TRUE) {
+    #cat("Unzip failed. Please check the zip file.\n")
+    cat(crayon::red("\u25CF"), "Unzip failed. Please check the zip file.\n")
+    return(NULL)
+  }
+
+  # Expected path inside the unzipped directory
+  nested_dir_path <- file.path(version_dir, "chromedriver-win64")
+
+  # Move chromedriver.exe to the version directory
+  exe_path <- file.path(nested_dir_path, "chromedriver.exe")
+  final_exe_path <- file.path(version_dir, "chromedriver.exe")
+  if (file.exists(exe_path)) {
+    file.rename(exe_path, final_exe_path)
+    #cat(green_dot, "chromedriver.exe has been successfully moved to ", final_exe_path, ".\n")
+  } else {
+    #cat("chromedriver.exe not found in the expected directory ", nested_dir_path, ".\n")
+    cat(crayon::red("\u25CF"), "chromedriver.exe not found in the expected directory ", nested_dir_path, ".\n")
+    return(NULL)
+  }
+
+  # Delete the original zip file and the nested directory
+  unlink(download_path)
+  unlink(nested_dir_path, recursive = TRUE)
+
+  # Print success message
+  #cat(green_dot, "Chromedriver.exe has been successfully downloaded to ", version_dir, ".\n")
+  cat(crayon::green("\u25CF"), "Chromedriver.exe has been successfully downloaded to ", version_dir, ".\n")
+}
+# Find chromedriver url
+find_chromedriver_url <- function(major_ver, platform) {
+  # Convert major_ver from string to number
+  major_ver_num <- as.numeric(major_ver)
+
+  # Base URL for older versions
+  old_versions_base_url <- "https://chromedriver.storage.googleapis.com"
+
+  # Logic for versions <= 114
+  if (major_ver_num <= 114) {
+    latest_release_ver <- fetch_latest_release_version(major_ver_num)
+
+    if (!is.null(latest_release_ver) && nchar(latest_release_ver) > 0) {
+      base_url <- "https://chromedriver.storage.googleapis.com"
+      download_url <- paste0(base_url, "/", latest_release_ver, "/chromedriver_", platform, ".zip")
+      return(download_url)
+    } else {
+      cat("Please update your Google Chrome to version 115 or later.\n")
+      return(invisible(NULL))
+    }
+  }  else {
+    # Fetch JSON data
+    data <- fetch_json_data()
+    if (is.null(data)) {
+      cat("Failed to fetch JSON data for versions greater than 114.\n")
+      return(invisible(NULL))
+    }
+    # Logic for versions > 114
+    urls <- c()
+    available_versions <- sapply(data[2]$versions, function(x) strsplit(x$version, "\\.")[[1]][1])
+
+    if (!major_ver_num %in% available_versions) {
+      cat("No ChromeDriver found for major version", major_ver_num, ".\n")
+      return(invisible(NULL))
+    }
+
+    for (ver_info in data[2]$versions) {
+      split_ver <- strsplit(ver_info$version, "\\.")[[1]]
+      if (split_ver[1] == major_ver_num) {
+        for (dl_info in ver_info$downloads$chromedriver) {
+          if (dl_info$platform == platform) {
+            urls <- c(urls, dl_info$url)
+          }
+        }
+      }
+    }
+
+    if (length(urls) > 0) {
+      return(sample(urls, 1))
+    } else {
+      cat("No suitable download URL found for the specified platform.\n")
+      return(invisible(NULL))
+    }
+  }
+}
+# Define the user_agent function with additional user agents
+user_agent <- function() {
+  # List of user agents
+  user_agents <- c(
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36 Edg/121.0.0.0",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.1.3 Safari/605.1.15",
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.212 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Firefox/98.0",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Firefox/98.0",
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Firefox/98.0",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Edge/121.0.0.0",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Edge/121.0.0.0",
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Edge/121.0.0.0"
+    # Add more user agents as needed
+  )
+
+  # Randomly select a user agent
+  selected_user_agent <- sample(user_agents, 1)
+
+  return(selected_user_agent)
+}
+# Get version>114 JSON
+fetch_json_data <- function() {
+  url <- "https://googlechromelabs.github.io/chrome-for-testing/known-good-versions-with-downloads.json"
+
+  # 定义错误检测函数
+  is_error_response <- function(resp) {
+    resp_status(resp) >= 400
+  }
+
+  # 定义错误消息体函数
+  error_message_body <- function(resp) {
+    paste("Error occurred with status code:", resp_status(resp))
+  }
+
+  # 准备带有缓存、用户代理、错误处理和重试逻辑的请求
+  resp <- request(url) |>
+    req_cache(tempdir(), debug = TRUE) |>
+    req_user_agent(user_agent()) |>
+    req_retry(max_tries = 3, is_transient = \(resp) resp_status(resp) %in% c(429, 500, 503), backoff = ~10) |>
+    req_error(is_error = is_error_response, body = error_message_body) |>
+    req_perform()
+
+  json_data <- resp_body_json(resp)
+
+  if (is.null(json_data) || !("versions" %in% names(json_data))) {
+    cat("Request succeeded, but the returned JSON data does not meet expectations.\n")
+    return(NULL)
+  }
+  return(json_data)
+}
+# Get version<=114 version
+fetch_latest_release_version <- function(major_ver) {
+  base_url <- "https://chromedriver.storage.googleapis.com"
+  release_url <- paste0(base_url, "/LATEST_RELEASE_", major_ver)
+
+  # 定义错误检测函数
+  is_error_response <- function(resp) {
+    resp_status(resp) >= 400
+  }
+
+  # 定义错误消息体函数
+  error_message_body <- function(resp) {
+    paste("Error occurred with status code:", resp_status(resp))
+  }
+
+  # 准备带有缓存、用户代理、错误处理和重试逻辑的请求
+  resp <- request(release_url) |>
+    req_cache(tempdir(), debug = TRUE) |>
+    req_user_agent(user_agent()) |>
+    req_retry(max_tries = 3, is_transient = \(resp) resp_status(resp) %in% c(429, 500, 503), backoff = ~10) |>
+    req_error(is_error = is_error_response, body = error_message_body) |>
+    req_perform()
+
+  # 检查响应状态并解析响应体
+  if (is.null(resp) || resp_status(resp) != 200) {
+    cat("Request failed or returned invalid status.\n")
+    return(NULL)
+  }
+
+  latest_release_ver <- resp_body_string(resp)
+
+  if (is.null(latest_release_ver)) {
+    cat("Request succeeded, but no valid version string was returned.\n")
+    return(NULL)
+  }
+
+  return(latest_release_ver)
+}
+
+```
+
+```{r example-get_chromedriver}
+get_chromedriver(dest_dir = "C:/Users/Dell/Desktop/test/test")
+```
+
+```{=html}
+<!--
+Here is an example on how to use the function.
+This should be a reproducible and working example
+-->
+```
+```{=html}
+<!--
+Here are some unit tests to verify the function works as expected.
+-->
+```
+That's it ! This the end of the documented story of our package. All components are there.
+
+# Add one to any value
+
+This is the first tool of our wonderful package. You can add `1` to any `value` using function `add_one()`.
+
+# get_seleniumserver
+
+```{r function-get_seleniumserver}
+#' Title
+#' 
+#' Description
+#' 
+#' @param dest_dir The path of chrome browser dirver and selenium server
+#' 
+#' @return NULL
+#' 
+#' @export
+
+get_seleniumserver <- function(dest_dir) {
+  if (!is.character(dest_dir) || dest_dir == "") {
+    stop("Error: 'dest_dir' argument must be a valid non-empty string.")
+  }
+  check_and_download_selenium(dest_dir)
+  return(invisible(NULL))
+}
+
+check_and_download_selenium <- function(dest_dir) {
+  # Path to the selenium directory
+  selenium_dir <- file.path(dest_dir, "selenium")
+
+  # Check if the selenium directory exists
+  if (!dir.exists(selenium_dir)) {
+    download_url <- check_selenium_url(dest_dir)
+    download_selenium(download_url, dest_dir)  # Replace with actual download function and URL
+    return()
+  }
+
+  # Find the latest version directory
+  version_dirs <- list.dirs(selenium_dir, full.names = TRUE, recursive = FALSE)
+  if (length(version_dirs) == 0) {
+    download_url <- check_selenium_url(dest_dir)
+    download_selenium(download_url, dest_dir)  # Replace with actual download function and URL
+    return()
+  }
+
+  latest_version_dir <- version_dirs[which.max(as.numeric(gsub(".*selenium/(\\d+\\.\\d+).*", "\\1", version_dirs)))]
+
+  # Find any .jar files in the latest version directory
+  jar_files <- list.files(latest_version_dir, pattern = "\\.jar$", full.names = TRUE)
+
+  # Check if any .jar file exists in the latest version directory
+  if (length(jar_files) > 0) {
+    #cat(green_dot, "You have already downloaded the .jar file in ", latest_version_dir, ".\n")
+    cat(crayon::green("\u25CF"), "You have already downloaded the .jar file in ", latest_version_dir, ".\n")
+  } else {
+    download_url <- check_selenium_url(dest_dir)
+    download_selenium(download_url, dest_dir)  # Replace with actual download function and URL
+  }
+}
+
+check_selenium_url <- function(dest_dir) {
+  # Retrieve the download URL for selenium
+  selenium_url <- find_selenium_url(dest_dir)
+
+  # Check the selenium URL
+  if (!is.null(selenium_url) && nzchar(selenium_url)) {
+    #cat(green_dot, "Selenium download URL successfully retrieved.\n")
+    cat(crayon::green("\u25CF"), "Selenium download URL successfully retrieved.\n")
+    return(selenium_url)
+  } else {
+    #cat(red_dot, "Failed to retrieve Selenium download URL.\n")
+    cat(crayon::red("\u25CF"), "Failed to retrieve Selenium download URL.\n")
+    return(NA)
+  }
+}
+
+download_selenium <- function(selenium_url, dest_dir) {
+  # Extract the version number from URL
+  version <- sub(".*/(\\d+\\.\\d+)/.*", "\\1", selenium_url)
+
+  # Create new directory for the specific version
+  version_dir <- file.path(dest_dir, "selenium", version)
+  if (!dir.exists(version_dir)) {
+    dir.create(version_dir, recursive = TRUE)
+  }
+
+  # Extract the file name from URL
+  selenium_name <- basename(selenium_url)
+  selenium_download_path <- file.path(version_dir, selenium_name)
+
+  # Download the Selenium jar file with a progress bar
+  tryCatch({
+    download.file(selenium_url, destfile = selenium_download_path, mode = "wb", quiet = T)
+    #cat(green_dot, "Selenium has been successfully downloaded to ", version_dir, ".\n")
+    cat(crayon::red("\u25CF"), "Selenium has been successfully downloaded to ", version_dir, ".\n")
+  }, error = function(e) {
+    #cat(red_dot, "Selenium download failed.\n")
+    cat(crayon::red("\u25CF"), "Selenium download failed.\n")
+    return()
+  })
+}
+
+find_selenium_url <- function(dest_dir) {
+  base_url <- "https://selenium-release.storage.googleapis.com/"
+
+  # 定义错误检测函数
+  is_error_response <- function(resp) {
+    httr2::resp_status(resp) >= 400
+  }
+
+  # 定义错误消息体函数
+  error_message_body <- function(resp) {
+    paste("Error occurred with status code:", httr2::resp_status(resp))
+  }
+
+  # 发送请求，包括缓存、重试和错误处理逻辑
+  req <- httr2::request(base_url) |>
+    httr2::req_user_agent(user_agent()) |>
+    httr2::req_cache(tempdir(), debug = TRUE) |>
+    httr2::req_retry(max_tries = 3, is_transient = \(resp) httr2::resp_status(resp) %in% c(429, 500, 503), backoff = ~10) |>
+    httr2::req_error(is_error = is_error_response, body = error_message_body) |>
+    httr2::req_perform() |>
+    httr2::resp_body_string()
+
+  # 解析 HTML，寻找最新版本的 selenium-server-standalone jar 文件
+  res <- req |>
+    rvest::read_html() |>
+    rvest::html_elements(xpath = "//key[contains(text(), 'selenium-server-standalone')]") |>
+    rvest::html_text2()
+
+  # 提取最新版本的文件名
+  latest_version_jar <- tail(grep(".jar$", res, value = TRUE), 1)
+  if (length(latest_version_jar) == 0) {
+    stop("No selenium-server-standalone jar file found")
+  }
+
+  # 构建下载 URL
+  selenium_name <- gsub("^[0-9.]+/", "", latest_version_jar)
+  selenium_file <- file.path(dest_dir, selenium_name)
+  selenium_url <- paste0(base_url, latest_version_jar)
+
+  return(selenium_url)
+}
+
+
+```
+
+```{r example-get_seleniumserver}
+get_seleniumserver(dest_dir = "C:/Users/Dell/Desktop/test/test")
+```
+
+# wdauto
+
+```{r function-wdauto}
+#' Title
+#' 
+#' Description
+#' 
+#' @param dest_dir The path of chrome browser dirver and selenium server
+#' 
+#' @return NULL
+#' 
+#' @export
+
+wdauto <- function(dest_dir) {
+  
+  if (!is.character(dest_dir) || dest_dir == "") {
+    stop("Error: 'dest_dir' argument must be a valid non-empty string.")
+  }
+  
+  # Check if Google Chrome is installed and get its version and platform information
+  browser_check()
+  
+  # Check if Java is installed
+  java_check()
+  
+  # Start the selenium server
+  start_selenium_server(dest_dir)
+  
+  return(invisible(NULL))
+}
+
+java_check <- function() {
+  # Check if the operating system is Windows
+  if (Sys.info()["sysname"] != "Windows") {
+    cat(crayon::red("\u25CF"), "This function only supports Windows operating systems.\n")
+    return(invisible(NULL))
+  }
+  
+  # Check for the path of the 'java' command
+  javapath <- Sys.which("java")
+  if (identical(javapath, "")) {
+    cat(crayon::red("\u25CF"), "Java is not installed. Please install Java.\n")
+    return(invisible(NULL))
+  }
+  
+  # Execute 'java -version' and capture both stdout and stderr
+  java_version_info <- tryCatch({
+    suppressWarnings(system2(javapath, "-version", stdout = TRUE, stderr = TRUE))
+  }, error = function(e) {
+    #cat(red_dot, "Error occurred while checking Java version.\n")
+    cat(crayon::red("\u25CF"), "Error occurred while checking Java version.\n")
+    return(invisible(NULL))
+  })
+  
+  # Check for any status attribute that indicates an error
+  if (!is.null(attr(java_version_info, "status"))) {
+    #cat(red_dot, "Error occurred while checking Java version.\n")
+    cat(crayon::red("\u25CF"), "Error occurred while checking Java version.\n")
+    return(invisible(NULL))
+  }
+  
+  # If execution reaches here, it means Java is installed
+  #cat(green_dot, "Java is installed on this computer.\n")
+  cat(crayon::green("\u25CF"), "Java is installed on this computer.\n")
+  
+  invisible(NULL)
+}
+start_selenium_server <- function(dest_dir) {
+  if (identical(Sys.getenv("R_CMD_CHECK"), "true")) {
+    cat("Selenium server start skipped during R CMD CHECK.\n")
+    return(invisible(NULL))
+  }
+  
+  # Check and terminate any existing Selenium server processes
+  task_list <- system2("wmic", args = c("process", "where",
+                                        "name='java.exe'", "get", "ProcessId,CommandLine"),
+                       stdout = TRUE)
+  task_list <- stringi::stri_encode(task_list, from = "",
+                                    to = "UTF-8")
+  task_list_lines <- unlist(strsplit(task_list, split = "\r\n"))
+  task_list_lines <- task_list_lines[grep("selenium-server-standalone",
+                                          task_list_lines)]
+  if (length(task_list_lines) > 0) {
+    for (line in task_list_lines) {
+      pid <- as.integer(gsub("^.*?([0-9]+).*$", "\\1",
+                             line))
+      system2("taskkill", args = c("/F", "/PID", pid),
+              stdout = FALSE, stderr = FALSE)
+      # cat(red_dot, sprintf("Old selenium server process with PID %d terminated.\n",
+      #                      pid))
+      cat(crayon::red("\u25CF"), sprintf("Old selenium server process with PID %d terminated.\n",
+                                         pid))
+    }
+    Sys.sleep(5)
+  }
+  
+  # Set up path for ChromeDriver
+  chromedriver_version_dir <- file.path(dest_dir, "chromedriver")
+  browser_files <- list.files(chromedriver_version_dir, pattern = "chromedriver\\.exe$", full.names = TRUE, recursive = TRUE)
+  if (length(browser_files) > 0) {
+    browser_file <- browser_files[1]  # Assuming the first one is the desired version
+  } else {
+    #cat(red_dot, "Error: Chromedriver.exe not found.\n")
+    cat(crayon::red("\u25CF"), "Error: Chromedriver.exe not found.\n")
+    return()
+  }
+  
+  # Set up path for the latest version of Selenium server .jar
+  selenium_version_dir <- file.path(dest_dir, "selenium")
+  if (dir.exists(selenium_version_dir)) {
+    selenium_files <- list.files(selenium_version_dir, pattern = "\\.jar$", full.names = TRUE, recursive = TRUE)
+    selenium_versions <- lapply(selenium_files, function(x) {
+      as.numeric(gsub(".*selenium-server-standalone-(\\d+\\.\\d+).*\\.jar$", "\\1", x))
+    })
+    latest_index <- which.max(unlist(selenium_versions))
+    if (length(selenium_files) > 0 && !is.na(latest_index)) {
+      selenium_file <- selenium_files[latest_index]
+    } else {
+      #cat(red_dot, "Error: Selenium server jar file not found.\n")
+      cat(crayon::red("\u25CF"), "Error: Selenium server jar file not found.\n")
+      return()
+    }
+  } else {
+    #cat(red_dot, "Error: Selenium directory not found.\n")
+    cat(crayon::red("\u25CF"), "Error: Selenium directory not found.\n")
+    return()
+  }
+  
+  # 构建并执行启动 Selenium server 的命令
+  command <- sprintf("java -Dwebdriver.chrome.driver=\"%s\" -jar \"%s\"", browser_file, selenium_file)
+  if (interactive()) {
+    system(command, wait = FALSE)
+    Sys.sleep(5)  # 为 Selenium Server 提供启动时间
+
+    port <- 4444  # Selenium Server 的默认端口
+    success <- tryCatch({
+        con <- socketConnection(port = port, open = "r+", timeout = 5)
+        close(con)
+        TRUE
+    }, error = function(e) {
+        FALSE
+    })
+
+    if (success) {
+        cat(crayon::green("\u25CF"), "Selenium server is up and running on port ", port, ".\n")
+    } else {
+        cat(crayon::red("\u25CF"), "Error: Failed to start Selenium server on port ", port, ".\n")
+    }
+  }
+  
+  
+  # Create a batch file for startup if it doesn't exist
+  startup_path <- file.path(Sys.getenv("APPDATA"), "Microsoft",
+                            "Windows", "Start Menu", "Programs", "Startup")
+  startup_path <- gsub("\\\\", "/", startup_path)
+  bat_file <- file.path(startup_path, "chrome_driver.bat")
+  
+  if (!file.exists(bat_file)) {
+    bat_content <- paste("@echo off", "cd /d %~dp0",
+                         "if \"%1\" == \"h\" goto begin", "mshta vbscript:createobject(\"wscript.shell\").run(\"%~nx0 h\",0)(window.close)&&exit",
+                         ":begin", command, sep = "\n")
+    writeLines(bat_content, con = bat_file)
+  }
+}
+```
+
+```{r example-wdauto}
+wdauto(dest_dir = "C:/Users/Dell/Desktop/test/test")
+```
+
+
+```{=html}
+<!-- 
+# Inflate your package
+
+You're one inflate from paper to box.
+Build your package from this very Rmd using `fusen::inflate()` 
+-->
+```
+```{r development-inflate, eval=FALSE}
+# Execute in the console directly
+fusen::inflate(flat_file = "dev/flat_teaching.Rmd", check = T, vignette_name = "Basic Usage")
+```
+
+```{=html}
+<!-- 
+- Verify your `"DESCRIPTION"` file has been updated
+- Verify your function is in `"R/"` directory
+- Verify your test is in `"tests/testthat/"` directory
+- Verify this Rmd appears in `"vignettes/"` directory 
+-->
+```

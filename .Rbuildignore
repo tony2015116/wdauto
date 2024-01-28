@@ -1,0 +1,9 @@
+
+^dev$
+^LICENSE\.md$
+^wdauto\.Rproj$
+^\.Rproj\.user$
+^_pkgdown\.yml$
+^docs$
+^pkgdown$
+^vignettes/articles$
