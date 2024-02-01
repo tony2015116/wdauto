@@ -1,6 +1,8 @@
 url: https://tony2015116.github.io/wdauto/
 template:
   bootstrap: 5
+  css: font.css
 lang: zh_CN
 development:
   mode: auto
+
