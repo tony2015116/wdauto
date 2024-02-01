@@ -4,7 +4,7 @@ template:
   params:
     toggle: manual
 
-lang: zh_CN
+#lang: zh_CN
 
 # development:
 #   mode: auto
