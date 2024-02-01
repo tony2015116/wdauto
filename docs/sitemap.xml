@@ -1,42 +1,45 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>/404.html</loc>
+    <loc>https://tony2015116.github.io/wdauto/404.html</loc>
   </url>
   <url>
-    <loc>/articles/basic-usage.html</loc>
+    <loc>https://tony2015116.github.io/wdauto/articles/basic-usage.html</loc>
   </url>
   <url>
-    <loc>/articles/get-started.html</loc>
+    <loc>https://tony2015116.github.io/wdauto/articles/get-started.html</loc>
   </url>
   <url>
-    <loc>/articles/index.html</loc>
+    <loc>https://tony2015116.github.io/wdauto/articles/index.html</loc>
   </url>
   <url>
-    <loc>/articles/tut.html</loc>
+    <loc>https://tony2015116.github.io/wdauto/articles/tut.html</loc>
   </url>
   <url>
-    <loc>/authors.html</loc>
+    <loc>https://tony2015116.github.io/wdauto/authors.html</loc>
   </url>
   <url>
-    <loc>/index.html</loc>
+    <loc>https://tony2015116.github.io/wdauto/index.html</loc>
   </url>
   <url>
-    <loc>/LICENSE-text.html</loc>
+    <loc>https://tony2015116.github.io/wdauto/LICENSE-text.html</loc>
   </url>
   <url>
-    <loc>/LICENSE.html</loc>
+    <loc>https://tony2015116.github.io/wdauto/LICENSE.html</loc>
   </url>
   <url>
-    <loc>/reference/get_chromedriver.html</loc>
+    <loc>https://tony2015116.github.io/wdauto/reference/auto_cs.html</loc>
   </url>
   <url>
-    <loc>/reference/get_seleniumserver.html</loc>
+    <loc>https://tony2015116.github.io/wdauto/reference/get_cd.html</loc>
   </url>
   <url>
-    <loc>/reference/index.html</loc>
+    <loc>https://tony2015116.github.io/wdauto/reference/get_ss.html</loc>
   </url>
   <url>
-    <loc>/reference/wdauto.html</loc>
+    <loc>https://tony2015116.github.io/wdauto/reference/index.html</loc>
+  </url>
+  <url>
+    <loc>https://tony2015116.github.io/wdauto/reference/reset_cs.html</loc>
   </url>
 </urlset>

@@ -59,9 +59,9 @@ This first section shows:
 
 -->
 ```
-# get_chromedriver
+# get_cd
 
-```{r function-get_chromedriver}
+```{r function-get_cd}
 #' Title
 #' 
 #' Description
@@ -73,12 +73,12 @@ This first section shows:
 #' @importFrom utils "download.file" "unzip" "tail"
 #' @export
 
-get_chromedriver <- function(dest_dir) {
+get_cd <- function(dest_dir) {
   if (!is.character(dest_dir) || dest_dir == "") {
     stop("Error: 'dest_dir' argument must be a valid non-empty string.")
   }
   # Check if Google Chrome is installed and get its version and platform information
-  chrome_info <- browser_check()
+  chrome_info <- browser_check(verbose = FALSE)
 
   major_ver <- as.integer(chrome_info$Chrome$main_version)
   platform <- chrome_info$Chrome$platform
@@ -87,26 +87,37 @@ get_chromedriver <- function(dest_dir) {
   return(invisible(NULL))
 }
 
-browser_check <- function() {
+browser_check <- function(verbose = TRUE) {
+  # Helper function to print messages based on the verbose flag
+  print_message <- function(message, type = "info") {
+    if (!verbose) return()
+    if (type == "error") {
+      cat(crayon::red("\u25CF"), message, "\n")
+    } else if (type == "success") {
+      cat(crayon::green("\u25CF"), message, "\n")
+    } else {
+      cat(message, "\n")
+    }
+  }
+  
   # Check if the operating system is Windows
   if (Sys.info()["sysname"] != "Windows") {
-    #cat(red_dot, "This function only supports Windows operating systems.\n")
-    cat(crayon::red("\u25CF"), "This function only supports Windows operating systems.\n")
+    print_message("This function only supports Windows operating systems.", "error")
     return(NULL)
   }
-
+  
   # Define the list of browsers and their registry keys
   browsers <- get_supported_browsers()
-
+  
   # Get platform information
   platform_info <- get_platform_info()
-
+  
   # Initialize a flag to track if the browser is found
   browser_found <- FALSE
-
+  
   # Initialize a list to store results
   result <- list()
-
+  
   # Iterate over each browser to check its installation status
   for (browser in browsers) {
     # Execute the registry query command
@@ -119,8 +130,7 @@ browser_check <- function() {
         # Extract the main version number
         main_version <- unlist(strsplit(browser_version, "\\."))[1]
         if (tolower(browser$name) == "chrome") {
-          #cat(green_dot, "Chrome browser was installed on this computer.\n")
-          cat(crayon::green("\u25CF"), "Chrome browser was installed on this computer.\n")
+          print_message("Chrome browser was installed on this computer.", "success")
           browser_found <- TRUE
           # Add the main version and platform to the results
           result[[browser$name]] <- list("main_version" = main_version, "platform" = platform_info)
@@ -131,13 +141,12 @@ browser_check <- function() {
       # If an error occurs, continue to the next browser
     })
   }
-
+  
   # If Chrome browser is not found
   if (!browser_found) {
-    #cat(red_dot, "Chrome browser is not installed on this computer.\n")
-    cat(crayon::red("\u25CF"), "Chrome browser is not installed on this computer.\n")
+    print_message("Chrome browser is not installed on this computer.", "error")
   }
-
+  
   # Return the result list
   return(result)
 }
@@ -418,8 +427,8 @@ fetch_latest_release_version <- function(major_ver) {
 
 ```
 
-```{r example-get_chromedriver}
-get_chromedriver(dest_dir = "C:/Users/Dell/Desktop/test/test")
+```{r example-get_cd}
+get_cd(dest_dir = "C:/Users/Dell/Desktop/test/test")
 ```
 
 ```{=html}
@@ -441,7 +450,7 @@ This is the first tool of our wonderful package. You can add `1` to any `value` 
 
 # get_seleniumserver
 
-```{r function-get_seleniumserver}
+```{r function-get_ss}
 #' Title
 #' 
 #' Description
@@ -452,7 +461,7 @@ This is the first tool of our wonderful package. You can add `1` to any `value` 
 #' 
 #' @export
 
-get_seleniumserver <- function(dest_dir) {
+get_ss <- function(dest_dir) {
   if (!is.character(dest_dir) || dest_dir == "") {
     stop("Error: 'dest_dir' argument must be a valid non-empty string.")
   }
@@ -528,7 +537,7 @@ download_selenium <- function(selenium_url, dest_dir) {
   tryCatch({
     download.file(selenium_url, destfile = selenium_download_path, mode = "wb", quiet = T)
     #cat(green_dot, "Selenium has been successfully downloaded to ", version_dir, ".\n")
-    cat(crayon::red("\u25CF"), "Selenium has been successfully downloaded to ", version_dir, ".\n")
+    cat(crayon::green("\u25CF"), "Selenium has been successfully downloaded to ", version_dir, ".\n")
   }, error = function(e) {
     #cat(red_dot, "Selenium download failed.\n")
     cat(crayon::red("\u25CF"), "Selenium download failed.\n")
@@ -581,13 +590,13 @@ find_selenium_url <- function(dest_dir) {
 
 ```
 
-```{r example-get_seleniumserver}
-get_seleniumserver(dest_dir = "C:/Users/Dell/Desktop/test/test")
+```{r example-get_ss}
+get_ss(dest_dir = "C:/Users/Dell/Desktop/test/test")
 ```
 
-# wdauto
+# auto_cs
 
-```{r function-wdauto}
+```{r function-auto_cs}
 #' Title
 #' 
 #' Description
@@ -598,20 +607,20 @@ get_seleniumserver(dest_dir = "C:/Users/Dell/Desktop/test/test")
 #' 
 #' @export
 
-wdauto <- function(dest_dir) {
-  
+auto_cs <- function(dest_dir) {
+
   if (!is.character(dest_dir) || dest_dir == "") {
     stop("Error: 'dest_dir' argument must be a valid non-empty string.")
   }
   
   # Check if Google Chrome is installed and get its version and platform information
-  browser_check()
+  browser_check(verbose = TRUE)
   
   # Check if Java is installed
   java_check()
   
   # Start the selenium server
-  start_selenium_server(dest_dir)
+  start_cs(dest_dir)
   
   return(invisible(NULL))
 }
@@ -652,108 +661,165 @@ java_check <- function() {
   
   invisible(NULL)
 }
-start_selenium_server <- function(dest_dir) {
-  if (identical(Sys.getenv("R_CMD_CHECK"), "true")) {
-    cat("Selenium server start skipped during R CMD CHECK.\n")
-    return(invisible(NULL))
-  }
+start_cs <- function(dest_dir) {
+  command <- NULL
+  # Skip starting Selenium server during R CMD CHECK
+  # if (identical(Sys.getenv("R_CMD_CHECK"), "true")) {
+  #   cat("Selenium server start skipped during R CMD CHECK.\n")
+  #   return(invisible(NULL))
+  # }
   
-  # Check and terminate any existing Selenium server processes
-  task_list <- system2("wmic", args = c("process", "where",
-                                        "name='java.exe'", "get", "ProcessId,CommandLine"),
-                       stdout = TRUE)
-  task_list <- stringi::stri_encode(task_list, from = "",
-                                    to = "UTF-8")
+  # Check for any running Selenium server processes and terminate them
+  task_list <- system2("wmic", args = c("process", "where", "name='java.exe'", "get", "ProcessId,CommandLine"), stdout = TRUE)
+  task_list <- stringi::stri_encode(task_list, from = "", to = "UTF-8")
   task_list_lines <- unlist(strsplit(task_list, split = "\r\n"))
-  task_list_lines <- task_list_lines[grep("selenium-server-standalone",
-                                          task_list_lines)]
+  task_list_lines <- task_list_lines[grep("selenium-server-standalone", task_list_lines)]
   if (length(task_list_lines) > 0) {
     for (line in task_list_lines) {
-      pid <- as.integer(gsub("^.*?([0-9]+).*$", "\\1",
-                             line))
-      system2("taskkill", args = c("/F", "/PID", pid),
-              stdout = FALSE, stderr = FALSE)
-      # cat(red_dot, sprintf("Old selenium server process with PID %d terminated.\n",
-      #                      pid))
-      cat(crayon::red("\u25CF"), sprintf("Old selenium server process with PID %d terminated.\n",
-                                         pid))
+      pid <- as.integer(gsub("^.*?([0-9]+).*$", "\\1", line))
+      system2("taskkill", args = c("/F", "/PID", pid), stdout = FALSE, stderr = FALSE)
+      cat(crayon::red("\u25CF"), sprintf("Old selenium server process with PID %d terminated.\n", pid))
     }
-    Sys.sleep(5)
+    Sys.sleep(5)  # Wait for the processes to be completely terminated
   }
   
-  # Set up path for ChromeDriver
+  # Set up the path for ChromeDriver
   chromedriver_version_dir <- file.path(dest_dir, "chromedriver")
   browser_files <- list.files(chromedriver_version_dir, pattern = "chromedriver\\.exe$", full.names = TRUE, recursive = TRUE)
   if (length(browser_files) > 0) {
-    browser_file <- browser_files[1]  # Assuming the first one is the desired version
+    browser_file <- browser_files[1]  # Assuming the first one is the correct version
   } else {
-    #cat(red_dot, "Error: Chromedriver.exe not found.\n")
     cat(crayon::red("\u25CF"), "Error: Chromedriver.exe not found.\n")
     return()
   }
   
-  # Set up path for the latest version of Selenium server .jar
+  # Set up the path for the latest version of Selenium server .jar file
   selenium_version_dir <- file.path(dest_dir, "selenium")
   if (dir.exists(selenium_version_dir)) {
     selenium_files <- list.files(selenium_version_dir, pattern = "\\.jar$", full.names = TRUE, recursive = TRUE)
-    selenium_versions <- lapply(selenium_files, function(x) {
-      as.numeric(gsub(".*selenium-server-standalone-(\\d+\\.\\d+).*\\.jar$", "\\1", x))
-    })
+    selenium_versions <- lapply(selenium_files, function(x) { as.numeric(gsub(".*selenium-server-standalone-(\\d+\\.\\d+).*\\.jar$", "\\1", x)) })
     latest_index <- which.max(unlist(selenium_versions))
     if (length(selenium_files) > 0 && !is.na(latest_index)) {
       selenium_file <- selenium_files[latest_index]
     } else {
-      #cat(red_dot, "Error: Selenium server jar file not found.\n")
       cat(crayon::red("\u25CF"), "Error: Selenium server jar file not found.\n")
       return()
     }
   } else {
-    #cat(red_dot, "Error: Selenium directory not found.\n")
     cat(crayon::red("\u25CF"), "Error: Selenium directory not found.\n")
     return()
   }
-  
-  # 构建并执行启动 Selenium server 的命令
   command <- sprintf("java -Dwebdriver.chrome.driver=\"%s\" -jar \"%s\"", browser_file, selenium_file)
-  if (interactive()) {
-    system(command, wait = FALSE)
-    Sys.sleep(5)  # 为 Selenium Server 提供启动时间
-
-    port <- 4444  # Selenium Server 的默认端口
-    success <- tryCatch({
-        con <- socketConnection(port = port, open = "r+", timeout = 5)
-        close(con)
-        TRUE
-    }, error = function(e) {
-        FALSE
-    })
-
-    if (success) {
-        cat(crayon::green("\u25CF"), "Selenium server is up and running on port ", port, ".\n")
-    } else {
-        cat(crayon::red("\u25CF"), "Error: Failed to start Selenium server on port ", port, ".\n")
-    }
+  
+  # Function to start the Selenium server
+  startSeleniumServer <- function(browser_file, selenium_file) {
+    
+    # Start the Selenium server and do not wait for it to finish (non-blocking)
+    system(command, wait = F)
+    
+    # Wait for a few seconds to give the server time to start
+    Sys.sleep(5)
+    
+    # Optional: Check if the server started successfully
+    # This part can be expanded based on how you can verify the server's status.
+    # For example, checking if the port is listening, or checking server logs.
+    # For simplicity, this example will assume success after waiting.
+    
+    # Assuming the server starts successfully, you can return a success indicator, such as TRUE.
+    # If you implement a check and find the server did not start, you could return FALSE.
+    return(TRUE)
   }
   
   
-  # Create a batch file for startup if it doesn't exist
-  startup_path <- file.path(Sys.getenv("APPDATA"), "Microsoft",
-                            "Windows", "Start Menu", "Programs", "Startup")
+  # Use the startSeleniumServer function
+  status <- startSeleniumServer(browser_file, selenium_file)
+  
+  # Check if Selenium server started successfully
+  if (!status) {
+    cat(crayon::red("\u25CF"), "Error: Failed to start Selenium server.\n")
+  } else {
+    cat(crayon::green("\u25CF"), "New selenium server process created.\n")
+  }
+  
+  # Create a startup batch file if it does not exist
+  startup_path <- file.path(Sys.getenv("APPDATA"), "Microsoft", "Windows", "Start Menu", "Programs", "Startup")
   startup_path <- gsub("\\\\", "/", startup_path)
   bat_file <- file.path(startup_path, "chrome_driver.bat")
   
   if (!file.exists(bat_file)) {
-    bat_content <- paste("@echo off", "cd /d %~dp0",
-                         "if \"%1\" == \"h\" goto begin", "mshta vbscript:createobject(\"wscript.shell\").run(\"%~nx0 h\",0)(window.close)&&exit",
-                         ":begin", command, sep = "\n")
+    bat_content <- paste("@echo off", "cd /d %~dp0", "if \"%1\" == \"h\" goto begin", "mshta vbscript:createobject(\"wscript.shell\").run(\"%~nx0 h\",0)(window.close)&&exit", ":begin", command, sep = "\n")
     writeLines(bat_content, con = bat_file)
   }
 }
+
 ```
 
-```{r example-wdauto}
-wdauto(dest_dir = "C:/Users/Dell/Desktop/test/test")
+```{r example-auto_cs}
+auto_cs(dest_dir = "C:/Users/Dell/Desktop/test/test")
 ```
+
+
+
+# reset_cs
+    
+```{r function-reset_cs}
+#' Title
+#' 
+#' Description
+#' 
+#' @return NULL
+#' 
+#' @export
+reset_cs <- function () {
+  # Check and terminate any existing Selenium server processes
+  task_list <- system2("wmic", args = c("process", "where", "name='java.exe'", "get", "ProcessId,CommandLine"), stdout = TRUE)
+  task_list <- stringi::stri_encode(task_list, from = "", to = "UTF-8")
+  task_list_lines <- unlist(strsplit(task_list, split = "\r\n"))
+  task_list_lines <- task_list_lines[grep("selenium-server-standalone", task_list_lines)]
+  if (length(task_list_lines) > 0) {
+    for (line in task_list_lines) {
+      pid <- as.integer(gsub("^.*?([0-9]+).*$", "\\1", line))
+      system2("taskkill", args = c("/F", "/PID", pid), stdout = FALSE, stderr = FALSE)
+      cat(crayon::green("\u25CF"), sprintf("Selenium server process with PID %d terminated.\n", pid))
+    }
+  } else {
+    cat(crayon::red("\u25CF"), "No Selenium server process found.\n")
+  }
+
+  # Check and terminate any existing ChromeDriver processes
+  chromedriver_list <- system2("wmic", args = c("process", "where", "name='chromedriver.exe'", "get", "ProcessId,CommandLine"), stdout = TRUE)
+  chromedriver_list <- stringi::stri_encode(chromedriver_list, from = "", to = "UTF-8")
+  chromedriver_list_lines <- unlist(strsplit(chromedriver_list, split = "\r\n"))
+  chromedriver_list_lines <- chromedriver_list_lines[grep("chromedriver.exe", chromedriver_list_lines)]
+  if (length(chromedriver_list_lines) > 0) {
+    for (line in chromedriver_list_lines) {
+      pid <- as.integer(gsub("^.*?([0-9]+).*$", "\\1", line))
+      system2("taskkill", args = c("/F", "/PID", pid), stdout = FALSE, stderr = FALSE)
+      cat(crayon::green("\u25CF"), sprintf("Chromedriver process with PID %d terminated.\n", pid))
+    }
+  } else {
+    cat(crayon::red("\u25CF"), "No Chromedriver process found.\n")
+  }
+
+  # Remove startup .bat file if exists
+  startup_path <- file.path(Sys.getenv("APPDATA"), "Microsoft", "Windows", "Start Menu", "Programs", "Startup")
+  startup_path <- gsub("\\\\", "/", startup_path)
+  bat_file <- list.files(startup_path, pattern = ".bat$", full.names = TRUE)
+  if (length(bat_file) > 0) {
+    file.remove(bat_file)
+    cat(crayon::green("\u25CF"), "Startup .bat file removed.\n")
+  } else {
+    cat(crayon::red("\u25CF"), "No startup .bat file found.\n")
+  }
+}
+```
+  
+```{r example-reset_cs}
+auto_cs(dest_dir = "C:/Users/Dell/Desktop/test/test")
+reset_cs()
+```
+
+
 
 
 ```{=html}

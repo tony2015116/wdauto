@@ -2,9 +2,10 @@ flat_teaching.Rmd:
   path: dev/flat_teaching.Rmd
   state: active
   R:
-  - R/get_chromedriver.R
-  - R/get_seleniumserver.R
-  - R/wdauto.R
+  - R/auto_cs.R
+  - R/get_cd.R
+  - R/get_ss.R
+  - R/reset_cs.R
   tests: []
   vignettes: vignettes/basic-usage.Rmd
   inflate:

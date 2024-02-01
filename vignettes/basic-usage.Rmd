@@ -54,10 +54,10 @@ This first section shows:
 -->
 ```
 
-# get_chromedriver
+# get_cd
 
-```{r example-get_chromedriver}
-get_chromedriver(dest_dir = "C:/Users/Dell/Desktop/test/test")
+```{r example-get_cd}
+get_cd(dest_dir = "C:/Users/Dell/Desktop/test/test")
 ```
 
 ```{=html}
@@ -83,14 +83,25 @@ This is the first tool of our wonderful package. You can add `1` to any `value` 
 
 # get_seleniumserver
 
-```{r example-get_seleniumserver}
-get_seleniumserver(dest_dir = "C:/Users/Dell/Desktop/test/test")
+```{r example-get_ss}
+get_ss(dest_dir = "C:/Users/Dell/Desktop/test/test")
 ```
 
-# wdauto
+# auto_cs
 
-```{r example-wdauto}
-wdauto(dest_dir = "C:/Users/Dell/Desktop/test/test")
+```{r example-auto_cs}
+auto_cs(dest_dir = "C:/Users/Dell/Desktop/test/test")
+```
+
+# reset_cs
+
+    
+
+  
+
+```{r example-reset_cs}
+auto_cs(dest_dir = "C:/Users/Dell/Desktop/test/test")
+reset_cs()
 ```
 
 ```{=html}

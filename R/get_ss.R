@@ -10,9 +10,9 @@
 #' 
 #' @export
 #' @examples
-#' get_seleniumserver(dest_dir = "C:/Users/Dell/Desktop/test/test")
+#' get_ss(dest_dir = "C:/Users/Dell/Desktop/test/test")
 
-get_seleniumserver <- function(dest_dir) {
+get_ss <- function(dest_dir) {
   if (!is.character(dest_dir) || dest_dir == "") {
     stop("Error: 'dest_dir' argument must be a valid non-empty string.")
   }
@@ -88,7 +88,7 @@ download_selenium <- function(selenium_url, dest_dir) {
   tryCatch({
     download.file(selenium_url, destfile = selenium_download_path, mode = "wb", quiet = T)
     #cat(green_dot, "Selenium has been successfully downloaded to ", version_dir, ".\n")
-    cat(crayon::red("\u25CF"), "Selenium has been successfully downloaded to ", version_dir, ".\n")
+    cat(crayon::green("\u25CF"), "Selenium has been successfully downloaded to ", version_dir, ".\n")
   }, error = function(e) {
     #cat(red_dot, "Selenium download failed.\n")
     cat(crayon::red("\u25CF"), "Selenium download failed.\n")

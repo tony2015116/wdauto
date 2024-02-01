@@ -11,14 +11,14 @@
 #' @importFrom utils "download.file" "unzip" "tail"
 #' @export
 #' @examples
-#' get_chromedriver(dest_dir = "C:/Users/Dell/Desktop/test/test")
+#' get_cd(dest_dir = "C:/Users/Dell/Desktop/test/test")
 
-get_chromedriver <- function(dest_dir) {
+get_cd <- function(dest_dir) {
   if (!is.character(dest_dir) || dest_dir == "") {
     stop("Error: 'dest_dir' argument must be a valid non-empty string.")
   }
   # Check if Google Chrome is installed and get its version and platform information
-  chrome_info <- browser_check()
+  chrome_info <- browser_check(verbose = FALSE)
 
   major_ver <- as.integer(chrome_info$Chrome$main_version)
   platform <- chrome_info$Chrome$platform
@@ -27,26 +27,37 @@ get_chromedriver <- function(dest_dir) {
   return(invisible(NULL))
 }
 
-browser_check <- function() {
+browser_check <- function(verbose = TRUE) {
+  # Helper function to print messages based on the verbose flag
+  print_message <- function(message, type = "info") {
+    if (!verbose) return()
+    if (type == "error") {
+      cat(crayon::red("\u25CF"), message, "\n")
+    } else if (type == "success") {
+      cat(crayon::green("\u25CF"), message, "\n")
+    } else {
+      cat(message, "\n")
+    }
+  }
+  
   # Check if the operating system is Windows
   if (Sys.info()["sysname"] != "Windows") {
-    #cat(red_dot, "This function only supports Windows operating systems.\n")
-    cat(crayon::red("\u25CF"), "This function only supports Windows operating systems.\n")
+    print_message("This function only supports Windows operating systems.", "error")
     return(NULL)
   }
-
+  
   # Define the list of browsers and their registry keys
   browsers <- get_supported_browsers()
-
+  
   # Get platform information
   platform_info <- get_platform_info()
-
+  
   # Initialize a flag to track if the browser is found
   browser_found <- FALSE
-
+  
   # Initialize a list to store results
   result <- list()
-
+  
   # Iterate over each browser to check its installation status
   for (browser in browsers) {
     # Execute the registry query command
@@ -59,8 +70,7 @@ browser_check <- function() {
         # Extract the main version number
         main_version <- unlist(strsplit(browser_version, "\\."))[1]
         if (tolower(browser$name) == "chrome") {
-          #cat(green_dot, "Chrome browser was installed on this computer.\n")
-          cat(crayon::green("\u25CF"), "Chrome browser was installed on this computer.\n")
+          print_message("Chrome browser was installed on this computer.", "success")
           browser_found <- TRUE
           # Add the main version and platform to the results
           result[[browser$name]] <- list("main_version" = main_version, "platform" = platform_info)
@@ -71,13 +81,12 @@ browser_check <- function() {
       # If an error occurs, continue to the next browser
     })
   }
-
+  
   # If Chrome browser is not found
   if (!browser_found) {
-    #cat(red_dot, "Chrome browser is not installed on this computer.\n")
-    cat(crayon::red("\u25CF"), "Chrome browser is not installed on this computer.\n")
+    print_message("Chrome browser is not installed on this computer.", "error")
   }
-
+  
   # Return the result list
   return(result)
 }
