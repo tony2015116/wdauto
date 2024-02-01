@@ -1,8 +1,54 @@
 url: https://tony2015116.github.io/wdauto/
 template:
-  bootstrap: 5
-  css: font.css
-lang: zh_CN
-development:
-  mode: auto
+  package: preferably
+  params:
+    toggle: manual
 
+lang: zh_CN
+
+# development:
+#   mode: auto
+
+home:
+  links:
+  # - text: GitHub Repo
+    # href: https://github.com/wviechtb/metafor
+  # - text: Browse source code
+  #   href: https://github.com/tony2015116/pptsdd
+  # - text: Report a bug
+  #   href: https://github.com/tony2015116/pptsdd/issues
+  - text: Author Website
+    href: https://www.rusersplace.com
+
+navbar:
+  left:
+    - text: "Introduction"
+      href: articles/basic-usage.html
+    - text: "Functions"
+      href: reference/index.html
+    - text: "Articles"
+      menu:
+      - text: "Get started"
+        href: articles/basic-usage.html
+    - text: "Changelog"
+      href: news/index.html
+  right:
+    - icon: fa-twitter fa-lg
+      href: https://twitter.com/tonyituite
+    - icon: fab fa-github fa-lg
+      href: https://github.com/tony2015116/pptsda
+
+reference:
+  - title: download function
+    desc: download chromedriver and selenium server
+    contents:
+      - get_cd
+      - get_ss
+  - title: wbauto function
+    desc: calculate pig perfromance, such as adg, adfi and fcr
+    contents:
+      - auto_cs
+  - title: reset function
+    desc: summary fcr results
+    contents:
+      - reset_cs
