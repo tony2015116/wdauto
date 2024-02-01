@@ -60,7 +60,7 @@ on:
 
 jobs:
   pkgdown:
-    runs-on: windows-latest  # 这里设置为 Windows 环境
+    runs-on: windows-latest  # 使用 Windows 环境
     concurrency:
       group: pkgdown-${{ github.event_name != 'pull_request' || github.run_id }}
     env:
@@ -70,7 +70,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # 注意：在 Windows 环境中安装 Pandoc 和 R 的步骤可能有所不同
       - uses: r-lib/actions/setup-pandoc@v2
 
       - uses: r-lib/actions/setup-r@v2
@@ -81,6 +80,12 @@ jobs:
         with:
           extra-packages: any::pkgdown, local::.
           needs: website
+
+      # 添加一个新的步骤来设置环境，例如创建文件夹或下载文件
+      - name: Setup Example Environment
+        run: |
+          mkdir C:/Users/Dell/Desktop/test/test
+          # 其他设置环境的命令
 
       - name: Build site
         run: pkgdown::build_site_github_pages(new_process = FALSE, install = FALSE)
