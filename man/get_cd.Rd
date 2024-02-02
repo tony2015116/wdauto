@@ -2,15 +2,15 @@
 % Please edit documentation in R/get_cd.R
 \name{get_cd}
 \alias{get_cd}
-\title{Title}
+\title{Download chromedriver}
 \usage{
 get_cd(dest_dir)
 }
 \arguments{
-\item{dest_dir}{The path of chrome browser dirver and selenium server}
+\item{dest_dir}{The path of chrome browser driver and selenium server}
 }
 \description{
-Description
+Download chromedriver
 }
 \examples{
 get_cd(dest_dir = "C:/Users/Dell/Desktop/test/test")

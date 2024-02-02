@@ -2,15 +2,15 @@
 % Please edit documentation in R/auto_cs.R
 \name{auto_cs}
 \alias{auto_cs}
-\title{Title}
+\title{Start Selenium WebDriver service}
 \usage{
 auto_cs(dest_dir)
 }
 \arguments{
-\item{dest_dir}{The path of chrome browser dirver and selenium server}
+\item{dest_dir}{The path of chrome browser driver and selenium server}
 }
 \description{
-Description
+Start Selenium WebDriver service
 }
 \examples{
 auto_cs(dest_dir = "C:/Users/Dell/Desktop/test/test")

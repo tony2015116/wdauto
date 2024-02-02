@@ -27,7 +27,6 @@ Run this 'development' chunk
 Store every call to library() that you need to run chunks line by line, as in a classical Rmd for analysis
 -->
 ```
-
 ```{=html}
 <!--
 # Description of your package
@@ -38,50 +37,13 @@ Fill and run the content of this chunk, before anything else.
 Note: when you will use other flat templates, this part will be in a separate file. Do not be surprised!
 -->
 ```
-
-# Add one to any value
-
-This is the first tool of our wonderful package. You can add `1` to any `value` using function `add_one()`.
-
-
-```{=html}
-<!-- 
-This first section shows:
-
-- the three parts necessary for a package: 'function', 'examples' and 'tests'.  
-  + Note that the three following chunks have names accordingly.
-
--->
-```
-
 # get_cd
 
 ```{r example-get_cd}
 get_cd(dest_dir = "C:/Users/Dell/Desktop/test/test")
 ```
 
-```{=html}
-<!--
-Here is an example on how to use the function.
-This should be a reproducible and working example
--->
-```
-
-```{=html}
-<!--
-Here are some unit tests to verify the function works as expected.
--->
-```
-
-That's it ! This the end of the documented story of our package. All components are there.
-
-
-# Add one to any value
-
-This is the first tool of our wonderful package. You can add `1` to any `value` using function `add_one()`.
-
-
-# get_seleniumserver
+# get_ss
 
 ```{r example-get_ss}
 get_ss(dest_dir = "C:/Users/Dell/Desktop/test/test")
@@ -95,22 +57,9 @@ auto_cs(dest_dir = "C:/Users/Dell/Desktop/test/test")
 
 # reset_cs
 
-    
-
-  
-
 ```{r example-reset_cs}
 auto_cs(dest_dir = "C:/Users/Dell/Desktop/test/test")
 reset_cs()
-```
-
-```{=html}
-<!-- 
-# Inflate your package
-
-You're one inflate from paper to box.
-Build your package from this very Rmd using `fusen::inflate()` 
--->
 ```
 
 ```{=html}
@@ -121,4 +70,3 @@ Build your package from this very Rmd using `fusen::inflate()`
 - Verify this Rmd appears in `"vignettes/"` directory 
 -->
 ```
-

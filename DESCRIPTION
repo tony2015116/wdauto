@@ -1,12 +1,11 @@
 Package: wdauto
-Title: Webdriver Tools
-Version: 0.0.1
+Title: Selenium WebDriver Service
+Version: 0.1.1
 Authors@R: c(
-    person("Guo Meng", , , "tony2015116@163.com", role = c("aut", "cre")),
+    person("Guo Meng", "ChatGPT", , "tony2015116@163.com", role = c("aut", "cre")),
     person("Guo Meng", role = "cph")
   )
-Description: An R package that can automatically or periodically download
-    data from the Nedap website in pig farm.
+Description: An R package is used to start the Selenium WebDriver service.
 License: MIT + file LICENSE
 URL: https://github.com/tony2015116/wdauto,
     https://tony2015116.github.io/wdauto/

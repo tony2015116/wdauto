@@ -2,15 +2,15 @@
 % Please edit documentation in R/get_ss.R
 \name{get_ss}
 \alias{get_ss}
-\title{Title}
+\title{Download Selenium Server}
 \usage{
 get_ss(dest_dir)
 }
 \arguments{
-\item{dest_dir}{The path of chrome browser dirver and selenium server}
+\item{dest_dir}{The path of chrome browser driver and selenium server}
 }
 \description{
-Description
+Download Selenium Server
 }
 \examples{
 get_ss(dest_dir = "C:/Users/Dell/Desktop/test/test")

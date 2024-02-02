@@ -28,10 +28,12 @@ navbar:
     - text: "Changelog"
       href: news/index.html
   right:
-    - icon: fa-twitter fa-lg
-      href: https://twitter.com/tonyituite
+    # - icon: fa-twitter fa-lg
+    #   href: https://twitter.com/tonyituite
     - icon: fab fa-github fa-lg
       href: https://github.com/tony2015116/wdauto
+    - icon: fa-users
+      href: https://github.com/tony2015116/wdauto/discussions
 
 reference:
   - title: download function

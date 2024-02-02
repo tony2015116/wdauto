@@ -33,10 +33,10 @@ Note: when you will use other flat templates, this part will be in a separate fi
 fusen::fill_description(
   pkg = here::here(),
   fields = list(
-    Title = "Breeding Tools",
-    Description = "An R package that can automatically or periodically download data from the Nedap website in pig farm.",
+    Title = "Selenium WebDriver Service",
+    Description = "An R package is used to start the Selenium WebDriver service.",
     `Authors@R` = c(
-      person("Guo Meng", email = "tony2015116@163.com", role = c("aut", "cre")),
+      person("Guo Meng", "ChatGPT", email = "tony2015116@163.com", role = c("aut", "cre")),
       person(given = "Guo Meng", role = "cph")
     )
   ),
@@ -46,27 +46,12 @@ fusen::fill_description(
 usethis::use_mit_license("Guo Meng")
 ```
 
-# Add one to any value
-
-This is the first tool of our wonderful package. You can add `1` to any `value` using function `add_one()`.
-
-```{=html}
-<!-- 
-This first section shows:
-
-- the three parts necessary for a package: 'function', 'examples' and 'tests'.  
-  + Note that the three following chunks have names accordingly.
-
--->
-```
 # get_cd
 
 ```{r function-get_cd}
-#' Title
+#' Download chromedriver
 #' 
-#' Description
-#' 
-#' @param dest_dir The path of chrome browser dirver and selenium server
+#' @param dest_dir The path of chrome browser driver and selenium server
 #' 
 #' @return NULL
 #' @importFrom httr2 "resp_status" "req_error" "req_perform" "req_retry" "req_user_agent" "req_cache" "request" "resp_body_json" "resp_body_string"
@@ -431,31 +416,12 @@ fetch_latest_release_version <- function(major_ver) {
 get_cd(dest_dir = "C:/Users/Dell/Desktop/test/test")
 ```
 
-```{=html}
-<!--
-Here is an example on how to use the function.
-This should be a reproducible and working example
--->
-```
-```{=html}
-<!--
-Here are some unit tests to verify the function works as expected.
--->
-```
-That's it ! This the end of the documented story of our package. All components are there.
-
-# Add one to any value
-
-This is the first tool of our wonderful package. You can add `1` to any `value` using function `add_one()`.
-
-# get_seleniumserver
+# get_ss
 
 ```{r function-get_ss}
-#' Title
+#' Download Selenium Server
 #' 
-#' Description
-#' 
-#' @param dest_dir The path of chrome browser dirver and selenium server
+#' @param dest_dir The path of chrome browser driver and selenium server
 #' 
 #' @return NULL
 #' 
@@ -597,11 +563,9 @@ get_ss(dest_dir = "C:/Users/Dell/Desktop/test/test")
 # auto_cs
 
 ```{r function-auto_cs}
-#' Title
+#' Start Selenium WebDriver service
 #' 
-#' Description
-#' 
-#' @param dest_dir The path of chrome browser dirver and selenium server
+#' @param dest_dir The path of chrome browser driver and selenium server
 #' 
 #' @return NULL
 #' 
@@ -763,9 +727,7 @@ auto_cs(dest_dir = "C:/Users/Dell/Desktop/test/test")
 # reset_cs
     
 ```{r function-reset_cs}
-#' Title
-#' 
-#' Description
+#' Reset Selenium WebDriver service
 #' 
 #' @return NULL
 #' 
@@ -820,16 +782,6 @@ reset_cs()
 ```
 
 
-
-
-```{=html}
-<!-- 
-# Inflate your package
-
-You're one inflate from paper to box.
-Build your package from this very Rmd using `fusen::inflate()` 
--->
-```
 ```{r development-inflate, eval=FALSE}
 # Execute in the console directly
 fusen::inflate(flat_file = "dev/flat_teaching.Rmd", check = T, vignette_name = "Basic Usage")

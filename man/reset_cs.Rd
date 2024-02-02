@@ -2,12 +2,12 @@
 % Please edit documentation in R/reset_cs.R
 \name{reset_cs}
 \alias{reset_cs}
-\title{Title}
+\title{Reset Selenium WebDriver service}
 \usage{
 reset_cs()
 }
 \description{
-Description
+Reset Selenium WebDriver service
 }
 \examples{
 auto_cs(dest_dir = "C:/Users/Dell/Desktop/test/test")
