@@ -1,7 +1,7 @@
 url: https://tony2015116.github.io/wdauto/
 template:
   package: preferably
-  logo: man/figures/wdauto.png
+  #logo: man/figures/wdauto.png
   params:
     toggle: manual
 
