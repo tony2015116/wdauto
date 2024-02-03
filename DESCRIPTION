@@ -2,7 +2,7 @@ Package: wdauto
 Title: Selenium WebDriver Service
 Version: 0.1.1
 Authors@R: c(
-    person("Guo Meng", "ChatGPT", , "tony2015116@163.com", role = c("aut", "cre")),
+    person("Guo Meng", , , "tony2015116@163.com", role = c("aut", "cre")),
     person("Guo Meng", role = "cph")
   )
 Description: An R package is used to start the Selenium WebDriver service.

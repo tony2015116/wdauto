@@ -36,7 +36,7 @@ fusen::fill_description(
     Title = "Selenium WebDriver Service",
     Description = "An R package is used to start the Selenium WebDriver service.",
     `Authors@R` = c(
-      person("Guo Meng", "ChatGPT", email = "tony2015116@163.com", role = c("aut", "cre")),
+      person("Guo Meng", , email = "tony2015116@163.com", role = c("aut", "cre")),
       person(given = "Guo Meng", role = "cph")
     )
   ),
