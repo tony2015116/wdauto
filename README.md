@@ -3,7 +3,7 @@
 <!-- <picture><source srcset="reference/figures/apple-touch-icon-120x120.png" media="(prefers-color-scheme: dark)"></picture> -->
 <!-- badges: start -->
 [![Windows](https://badgen.net/badge/icon/windows?icon=windows&label)](https://microsoft.com/windows/)
-[![GitHub release](https://img.shields.io/github/release/Naereen/StrapDown.js.svg)](https://github.com/tony2015116/wdauto/releases)
+![GitHub R package version](https://img.shields.io/github/r-package/v/tony2015116/wdauto)
 [![GitHub last commit](https://img.shields.io/github/last-commit/tony2015116/wdauto)](#)
 <!-- badges: end -->
 

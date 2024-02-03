@@ -1,3 +1,3 @@
-# wdauto (development version)
+# wdauto 0.1.1
 
-* Initial CRAN submission.
+* create `wdauto` package.

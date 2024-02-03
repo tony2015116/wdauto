@@ -51,3 +51,8 @@ reference:
     desc: summary fcr results
     contents:
       - reset_cs
+
+news:
+  releases:
+  - text: "wdauto 0.1.1"
+    href: https://github.com/tony2015116/wdauto/releases/tag/v0.1.1
