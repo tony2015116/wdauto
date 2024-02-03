@@ -1,5 +1,5 @@
-# wdauto <a href='https://tony2015116.github.io/wdauto/'><img src='apple-touch-icon-120x120.png'  width="139" align="right" /></a>
-
+# wdauto <a href='https://tony2015116.github.io/wdauto/'><img src='logo.svg'  width="139" align="right" /></a> 
+<!--apple-touch-icon-120x120.png-->
 <!-- <picture><source srcset="reference/figures/apple-touch-icon-120x120.png" media="(prefers-color-scheme: dark)"></picture> -->
 <!-- badges: start -->
 [![Windows](https://badgen.net/badge/icon/windows?icon=windows&label)](https://microsoft.com/windows/)
