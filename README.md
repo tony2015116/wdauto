@@ -1,4 +1,4 @@
-# wdauto <a href='https://tony2015116.github.io/wdauto/'><img src='logo.svg'  width="139" align="right" /></a> 
+# wdauto <a href='https://tony2015116.github.io/wdauto/'><img src='reference/figures/logo.svg'  width="120" align="right" />
 <!--apple-touch-icon-120x120.png-->
 <!-- <picture><source srcset="reference/figures/apple-touch-icon-120x120.png" media="(prefers-color-scheme: dark)"></picture> -->
 <!-- badges: start -->
