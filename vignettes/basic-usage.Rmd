@@ -40,25 +40,25 @@ Note: when you will use other flat templates, this part will be in a separate fi
 # get_cd
 
 ```{r example-get_cd}
-get_cd(dest_dir = "C:/Users/Dell/Desktop/test/test")
+get_cd(dest_dir = "C:/Users/Dell/Desktop/test")
 ```
 
 # get_ss
 
 ```{r example-get_ss}
-get_ss(dest_dir = "C:/Users/Dell/Desktop/test/test")
+get_ss(dest_dir = "C:/Users/Dell/Desktop/test")
 ```
 
 # auto_cs
 
 ```{r example-auto_cs}
-auto_cs(dest_dir = "C:/Users/Dell/Desktop/test/test")
+auto_cs(dest_dir = "C:/Users/Dell/Desktop/test")
 ```
 
 # reset_cs
 
 ```{r example-reset_cs}
-auto_cs(dest_dir = "C:/Users/Dell/Desktop/test/test")
+auto_cs(dest_dir = "C:/Users/Dell/Desktop/test")
 reset_cs()
 ```
 

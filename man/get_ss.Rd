@@ -13,5 +13,5 @@ get_ss(dest_dir)
 Download Selenium Server
 }
 \examples{
-get_ss(dest_dir = "C:/Users/Dell/Desktop/test/test")
+get_ss(dest_dir = "C:/Users/Dell/Desktop/test")
 }

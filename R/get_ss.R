@@ -8,7 +8,7 @@
 #' 
 #' @export
 #' @examples
-#' get_ss(dest_dir = "C:/Users/Dell/Desktop/test/test")
+#' get_ss(dest_dir = "C:/Users/Dell/Desktop/test")
 
 get_ss <- function(dest_dir) {
   if (!is.character(dest_dir) || dest_dir == "") {

@@ -9,7 +9,7 @@
 #' @importFrom utils "download.file" "unzip" "tail"
 #' @export
 #' @examples
-#' get_cd(dest_dir = "C:/Users/Dell/Desktop/test/test")
+#' get_cd(dest_dir = "C:/Users/Dell/Desktop/test")
 
 get_cd <- function(dest_dir) {
   if (!is.character(dest_dir) || dest_dir == "") {

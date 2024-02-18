@@ -13,5 +13,5 @@ auto_cs(dest_dir)
 Start Selenium WebDriver service
 }
 \examples{
-auto_cs(dest_dir = "C:/Users/Dell/Desktop/test/test")
+auto_cs(dest_dir = "C:/Users/Dell/Desktop/test")
 }

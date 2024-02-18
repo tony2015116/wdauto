@@ -8,7 +8,7 @@
 #' 
 #' @export
 #' @examples
-#' auto_cs(dest_dir = "C:/Users/Dell/Desktop/test/test")
+#' auto_cs(dest_dir = "C:/Users/Dell/Desktop/test")
 
 auto_cs <- function(dest_dir) {
 

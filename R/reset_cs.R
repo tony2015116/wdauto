@@ -6,7 +6,7 @@
 #' 
 #' @export
 #' @examples
-#' auto_cs(dest_dir = "C:/Users/Dell/Desktop/test/test")
+#' auto_cs(dest_dir = "C:/Users/Dell/Desktop/test")
 #' reset_cs()
 reset_cs <- function () {
   # Check and terminate any existing Selenium server processes

@@ -13,5 +13,5 @@ get_cd(dest_dir)
 Download chromedriver
 }
 \examples{
-get_cd(dest_dir = "C:/Users/Dell/Desktop/test/test")
+get_cd(dest_dir = "C:/Users/Dell/Desktop/test")
 }

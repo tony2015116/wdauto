@@ -413,7 +413,7 @@ fetch_latest_release_version <- function(major_ver) {
 ```
 
 ```{r example-get_cd}
-get_cd(dest_dir = "C:/Users/Dell/Desktop/test/test")
+get_cd(dest_dir = "C:/Users/Dell/Desktop/test")
 ```
 
 # get_ss
@@ -557,7 +557,7 @@ find_selenium_url <- function(dest_dir) {
 ```
 
 ```{r example-get_ss}
-get_ss(dest_dir = "C:/Users/Dell/Desktop/test/test")
+get_ss(dest_dir = "C:/Users/Dell/Desktop/test")
 ```
 
 # auto_cs
@@ -719,7 +719,7 @@ start_cs <- function(dest_dir) {
 ```
 
 ```{r example-auto_cs}
-auto_cs(dest_dir = "C:/Users/Dell/Desktop/test/test")
+auto_cs(dest_dir = "C:/Users/Dell/Desktop/test")
 ```
 
 
@@ -777,7 +777,7 @@ reset_cs <- function () {
 ```
   
 ```{r example-reset_cs}
-auto_cs(dest_dir = "C:/Users/Dell/Desktop/test/test")
+auto_cs(dest_dir = "C:/Users/Dell/Desktop/test")
 reset_cs()
 ```
 
