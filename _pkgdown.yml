@@ -44,11 +44,11 @@ reference:
       - get_cd
       - get_ss
   - title: wbauto function
-    desc: calculate pig perfromance, such as adg, adfi and fcr
+    desc: start selenium webdriver service
     contents:
       - auto_cs
   - title: reset function
-    desc: summary fcr results
+    desc: reset selenium webdriver
     contents:
       - reset_cs
 

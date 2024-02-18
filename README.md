@@ -13,8 +13,8 @@ The downloading of binaries is handled by the [`httr2`](https://httr2.r-lib.org/
 
 The `wdauto` package currently manages the following binaries:
 
-* [Selenium standalone binary](http://selenium-release.storage.googleapis.com/index.html)
 * [chromedriver](https://chromedriver.chromium.org/)
+* [Selenium standalone binary](http://selenium-release.storage.googleapis.com/index.html)
 
 ## Installation
 
@@ -35,7 +35,7 @@ This is a basic example which shows you how to start a selenium webdriver server
 library(wdauto)
 
 ## download chromedriver
-get_dd(dest_dir = "path/to/destination/directory")
+get_cd(dest_dir = "path/to/destination/directory")
 ## download selenium server
 get_ss(dest_dir = "path/to/destination/directory")
 ## start selenium webdriver service

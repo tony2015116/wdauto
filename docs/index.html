@@ -132,8 +132,8 @@
 <p>The downloading of binaries is handled by the <a href="https://httr2.r-lib.org/" class="external-link"><code>httr2</code></a> package and <a href="https://rvest.tidyverse.org/" class="external-link"><code>rvest</code></a> package, and the running of the binaries as processes is handled by generating a .bat file, which is placed in the Windows startup folder.</p>
 <p>The <code>wdauto</code> package currently manages the following binaries:</p>
 <ul>
-<li><a href="http://selenium-release.storage.googleapis.com/index.html" class="external-link">Selenium standalone binary</a></li>
 <li><a href="https://chromedriver.chromium.org/" class="external-link">chromedriver</a></li>
+<li><a href="http://selenium-release.storage.googleapis.com/index.html" class="external-link">Selenium standalone binary</a></li>
 </ul>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
@@ -153,7 +153,7 @@
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/tony2015116/wdauto" class="external-link">wdauto</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="co">## download chromedriver</span></span>
-<span><span class="fu">get_dd</span><span class="op">(</span>dest_dir <span class="op">=</span> <span class="st">"path/to/destination/directory"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="reference/get_cd.html">get_cd</a></span><span class="op">(</span>dest_dir <span class="op">=</span> <span class="st">"path/to/destination/directory"</span><span class="op">)</span></span>
 <span><span class="co">## download selenium server</span></span>
 <span><span class="fu"><a href="reference/get_ss.html">get_ss</a></span><span class="op">(</span>dest_dir <span class="op">=</span> <span class="st">"path/to/destination/directory"</span><span class="op">)</span></span>
 <span><span class="co">## start selenium webdriver service</span></span>
