@@ -49,22 +49,22 @@ local({
   stopifnot(identical(env$listener_pids(), 1001L))
 
   env$require_windows <- function() NULL
-  env$service_directory <- function() base
-  env$ensure_chromedriver <- function(...) "driver"
+  env$service_directory <- function(...) base
+  env$ensure_browser_driver <- function(...) "driver"
   env$installed_selenium_jar <- function(...) "jar"
   env$owned_process <- function(state) if (!is.null(state)) TRUE
   env$read_service_state <- function(...) list(driver = "driver", jar = "jar", pid = 1001L)
-  env$service_ready <- function(pid) identical(pid, 1001L)
-  env$launch_selenium <- function(...) stop("Must not start a second process.")
+  env$service_ready <- function(pid, ...) identical(pid, 1001L)
+  env$launch_webdriver <- function(...) stop("Must not start a second process.")
   env$auto_cs(base, autostart = FALSE)
-  env$ensure_chromedriver <- function(...) "new driver"
+  env$ensure_browser_driver <- function(...) "new driver"
   expect_error(env$auto_cs(base, autostart = FALSE), "different binaries")
   env$read_service_state <- function(...) NULL
   expect_error(env$auto_cs(base, autostart = FALSE), "Port 4444 is in use")
 
   batch <- file.path(base, "chrome_driver.bat")
   other <- file.path(base, "other_workflow.bat")
-  env$startup_file <- function() batch
+  env$startup_file <- function(...) batch
   writeLines("echo unrelated", batch)
   writeLines("echo another task", other)
   env$reset_cs()
