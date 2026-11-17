@@ -2,18 +2,20 @@
 % Please edit documentation in R/get_cd.R
 \name{get_cd}
 \alias{get_cd}
-\title{Download ChromeDriver}
+\title{Download a browser WebDriver}
 \usage{
-get_cd(dest_dir)
+get_cd(dest_dir, browser = c("chrome", "edge"))
 }
 \arguments{
 \item{dest_dir}{Directory containing the WebDriver binaries.}
+
+\item{browser}{Browser to manage, either \code{chrome} or \code{edge}.}
 }
 \value{
-Invisibly NULL. Downloads or reuses a compatible ChromeDriver.
+Invisibly NULL. Downloads or reuses a compatible driver.
 }
 \description{
-Download ChromeDriver
+Download a browser WebDriver
 }
 \examples{
 \dontrun{get_cd("C:/pptsdd-webdriver")}

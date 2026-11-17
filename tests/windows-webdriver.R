@@ -1,6 +1,7 @@
 if (identical(Sys.getenv("WDAUTO_WINDOWS_SMOKE"), "true")) {
   library(wdauto)
-  local({
+  smoke_test <- function(browser) {
+    edge <- browser == "edge"
     stopifnot(.Platform$OS.type == "windows", nzchar(Sys.which("java")))
     root <- tempfile("wdauto-windows-")
     dir.create(root)
@@ -15,21 +16,22 @@ if (identical(Sys.getenv("WDAUTO_WINDOWS_SMOKE"), "true")) {
           message(log, "\n", paste(tail(readLines(log, warn = FALSE), 30L), collapse = "\n"))
         }
       }
-      try(reset_cs(), silent = TRUE)
+      try(reset_cs(browser), silent = TRUE)
       Sys.setenv(LOCALAPPDATA = old_localappdata, APPDATA = old_appdata)
       unlink(root, recursive = TRUE)
     })
 
-    get_cd(dest)
-    get_ss(dest)
-    auto_cs(dest)
-    state_file <- file.path(root, "wdauto", "service.rds")
+    get_cd(dest, browser)
+    if (!edge) get_ss(dest)
+    auto_cs(dest, browser = browser)
+    state_file <- file.path(wdauto:::service_directory(browser), "service.rds")
     state <- readRDS(state_file)
-    auto_cs(dest)
+    auto_cs(dest, browser = browser)
     stopifnot(identical(readRDS(state_file)$pid, state$pid))
 
     http <- function(path, body = NULL, method = NULL) {
-      request <- httr2::request(paste0("http://127.0.0.1:4444/wd/hub", path))
+      base <- if (edge) "http://127.0.0.1:4445" else "http://127.0.0.1:4444/wd/hub"
+      request <- httr2::request(paste0(base, path))
       if (!is.null(body)) request <- httr2::req_body_json(request, body)
       if (!is.null(method)) request <- httr2::req_method(request, method)
       response <- httr2::req_perform(httr2::req_timeout(request, 40))
@@ -38,11 +40,15 @@ if (identical(Sys.getenv("WDAUTO_WINDOWS_SMOKE"), "true")) {
     output <- file.path(root, "csv")
     dir.create(output)
     download_path <- normalizePath(output, winslash = "\\", mustWork = TRUE)
-    # Match the legacy session request currently made by pptsdd through RSelenium.
-    result <- http("/session", list(desiredCapabilities = list(browserName = "chrome",
-      chromeOptions = list(args = c("--headless=new", "--disable-gpu"),
-                           prefs = list(download.default_directory = download_path,
-                                        download.prompt_for_download = FALSE)))))
+    options <- list(args = c("--headless=new", "--disable-gpu"),
+                    prefs = list(download.default_directory = download_path,
+                                 download.prompt_for_download = FALSE))
+    body <- if (edge) {
+      list(capabilities = list(alwaysMatch = list(browserName = "MicrosoftEdge", "ms:edgeOptions" = options)))
+    } else {
+      list(desiredCapabilities = list(browserName = "chrome", chromeOptions = options))
+    }
+    result <- http("/session", body)
     session_id <- result$sessionId
     if (is.null(session_id)) session_id <- result$value$sessionId
     stopifnot(is.character(session_id), length(session_id) == 1L, nzchar(session_id))
@@ -60,13 +66,16 @@ if (identical(Sys.getenv("WDAUTO_WINDOWS_SMOKE"), "true")) {
     stopifnot(identical(readLines(csv, warn = FALSE), c("a,b", "1,2")))
     http(path, method = "DELETE")
 
-    batch <- wdauto:::startup_file()
+    batch <- wdauto:::startup_file(browser)
     other <- file.path(dirname(batch), "unrelated.bat")
     writeLines("echo unrelated", other)
-    reset_cs()
-    reset_cs()
+    reset_cs(browser)
+    reset_cs(browser)
     stopifnot(!file.exists(state_file), !file.exists(batch), file.exists(other),
               !ps::ps_is_running(ps::ps_handle(state$pid, time = state$time)))
     passed <- TRUE
-  })
+    message(browser, " WebDriver session and CSV download passed.")
+  }
+  smoke_test("chrome")
+  smoke_test("edge")
 }

@@ -2,21 +2,23 @@
 % Please edit documentation in R/auto_cs.R
 \name{auto_cs}
 \alias{auto_cs}
-\title{Start the Selenium WebDriver service}
+\title{Start a local WebDriver service}
 \usage{
-auto_cs(dest_dir, autostart = TRUE)
+auto_cs(dest_dir, autostart = TRUE, browser = c("chrome", "edge"))
 }
 \arguments{
 \item{dest_dir}{Directory containing the WebDriver binaries.}
 
 \item{autostart}{Whether to install or update the Windows login startup entry.
 Use FALSE to start the service without writing a startup entry.}
+
+\item{browser}{Browser to manage, either \code{chrome} or \code{edge}.}
 }
 \value{
 Invisibly NULL once the service is ready.
 }
 \description{
-Start the Selenium WebDriver service
+Start a local WebDriver service
 }
 \examples{
 \dontrun{auto_cs("C:/pptsdd-webdriver")}

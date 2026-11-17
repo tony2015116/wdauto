@@ -2,15 +2,18 @@
 % Please edit documentation in R/reset_cs.R
 \name{reset_cs}
 \alias{reset_cs}
-\title{Stop the managed Selenium service and remove its login startup entry}
+\title{Stop the managed browser driver and remove its login startup entry}
 \usage{
-reset_cs()
+reset_cs(browser = c("chrome", "edge"))
+}
+\arguments{
+\item{browser}{Browser to stop, either \code{chrome} or \code{edge}.}
 }
 \value{
 Invisibly NULL.
 }
 \description{
-Stop the managed Selenium service and remove its login startup entry
+Stop the managed browser driver and remove its login startup entry
 }
 \examples{
 \dontrun{reset_cs()}
