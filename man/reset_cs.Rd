@@ -2,14 +2,16 @@
 % Please edit documentation in R/reset_cs.R
 \name{reset_cs}
 \alias{reset_cs}
-\title{Reset Selenium WebDriver service}
+\title{Stop the managed Selenium service and remove its login startup entry}
 \usage{
 reset_cs()
 }
+\value{
+Invisibly NULL.
+}
 \description{
-Reset Selenium WebDriver service
+Stop the managed Selenium service and remove its login startup entry
 }
 \examples{
-auto_cs(dest_dir = "C:/Users/Dell/Desktop/test")
-reset_cs()
+\dontrun{reset_cs()}
 }

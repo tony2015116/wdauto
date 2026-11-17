@@ -7,11 +7,14 @@
 get_ss(dest_dir)
 }
 \arguments{
-\item{dest_dir}{The path of chrome browser driver and selenium server}
+\item{dest_dir}{Directory containing the WebDriver binaries.}
+}
+\value{
+Invisibly NULL. Downloads or reuses the supported standalone JAR.
 }
 \description{
 Download Selenium Server
 }
 \examples{
-get_ss(dest_dir = "C:/Users/Dell/Desktop/test")
+\dontrun{get_ss("C:/pptsdd-webdriver")}
 }
