@@ -73,9 +73,10 @@ directory_lock <- function(path) {
   lock
 }
 
-run_tool <- function(command, args, env = NULL) {
+run_tool <- function(command, args, env = NULL, combine_output = FALSE) {
   result <- processx::run(command, args, env = env, timeout = 10000,
-                          error_on_status = FALSE, windows_hide_window = TRUE)
+                          error_on_status = FALSE, windows_hide_window = TRUE,
+                          stderr_to_stdout = combine_output)
   if (result$status != 0L || result$timeout) {
     stop(basename(command), " failed: ", trimws(result$stderr), call. = FALSE)
   }

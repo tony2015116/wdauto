@@ -100,8 +100,8 @@ find_chromedriver <- function(chrome) {
 }
 
 installed_driver_version <- function(path) {
-  output <- tryCatch(run_tool(path, "--version"), error = function(error) "")
-  found <- regmatches(output, regexpr("(?<=ChromeDriver |MSEdgeDriver )[0-9]+(?:\\.[0-9]+){3}", output, perl = TRUE))
+  output <- tryCatch(run_tool(path, "--version", combine_output = TRUE), error = function(error) "")
+  found <- regmatches(output, regexpr("[0-9]+(?:\\.[0-9]+){3}", output, perl = TRUE))
   if (is_chrome_version(found)) found else NA_character_
 }
 
@@ -139,9 +139,15 @@ ensure_browser_driver <- function(dest_dir, browser) {
   entry <- entries[tolower(basename(entries)) == executable]
   if (length(entry) != 1L) stop("Driver archive does not contain exactly one ", executable, ".", call. = FALSE)
   extracted <- utils::unzip(zip, files = entry, exdir = stage, junkpaths = TRUE)
-  if (length(extracted) != 1L || !file.exists(extracted) ||
-      !identical(installed_driver_version(extracted), actual$version)) {
-    stop("Downloaded WebDriver failed version verification.", call. = FALSE)
+  if (length(extracted) != 1L || !file.exists(extracted)) {
+    stop("Could not extract ", executable, " from the driver archive.", call. = FALSE)
+  }
+  installed <- installed_driver_version(extracted)
+  valid <- if (edge) isTRUE(chrome_build(installed) == chrome_build(chrome$version)) else
+    identical(installed, actual$version)
+  if (!valid) {
+    stop("Downloaded ", executable, " failed version verification. Expected ", actual$version,
+         ", found ", if (is.na(installed)) "no version" else installed, ".", call. = FALSE)
   }
   if (!file.rename(extracted, target)) stop("Could not install WebDriver at ", target, ".", call. = FALSE)
   target
