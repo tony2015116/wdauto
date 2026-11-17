@@ -395,7 +395,7 @@ launch_selenium <- function(java, jar, driver, state_dir, state_file) {
   time <- tryCatch(ps::ps_create_time(process$as_ps_handle()), error = function(error) {
     stop("Selenium exited or could not be identified. Logs: ", log_dir, call. = FALSE)
   })
-  state <- list(pid = pid, time = as.numeric(time), marker = marker, java = java,
+  state <- list(pid = pid, time = time, marker = marker, java = java,
                 driver = driver, jar = jar, log_dir = log_dir)
   pending <- tempfile(".service-", tmpdir = state_dir)
   on.exit(unlink(pending), add = TRUE)

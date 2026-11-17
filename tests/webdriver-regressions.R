@@ -80,6 +80,30 @@ local({
   stopifnot(env$owned_startup(batch))
   env$configure_startup(base, drivers[1L])
   env$configure_startup(base, drivers[3L])
-  stopifnot(env$owned_startup(batch), length(parse(file.path(base, "startup.R"))) == 2L,
-            any(grepl(drivers[3L], readLines(file.path(base, "startup.R")), fixed = TRUE)))
+  startup <- parse(file.path(base, "startup.R"))
+  stopifnot(env$owned_startup(batch), length(startup) == 2L,
+            identical(startup[[2L]][[2L]], drivers[3L]))
+})
+
+
+local({
+  windows <- .Platform$OS.type == "windows"
+  exe <- file.path(R.home("bin"), if (windows) "Rscript.exe" else "exec/R")
+  marker <- "-Dwdauto.instance=regression-test"
+  driver <- "driver fixture"
+  jar <- "jar fixture"
+  worker <- processx::process$new(exe, c("--vanilla", "--slave", "-e", 'cat("ready\\n"); flush.console(); Sys.sleep(25)', "--args",
+    marker, jar, paste0("-Dwebdriver.chrome.driver=", driver)), stdout = "|")
+  on.exit(worker$kill())
+  worker$poll_io(10000)
+  stopifnot(identical(worker$read_output_lines(1), "ready"))
+  handle <- worker$as_ps_handle()
+  state <- list(pid = worker$get_pid(), time = ps::ps_create_time(handle), marker = marker,
+                java = normalizePath(ps::ps_exe(handle), winslash = "/"), driver = driver, jar = jar)
+  stopifnot(!is.null(wdauto:::owned_process(state)))
+  stale <- state
+  stale$time <- state$time - 60
+  stopifnot(is.null(wdauto:::owned_process(stale)))
+  state$marker <- "-Dwdauto.instance=another-service"
+  expect_error(wdauto:::owned_process(state), "could not be verified")
 })
