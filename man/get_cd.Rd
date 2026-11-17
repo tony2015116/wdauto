@@ -2,16 +2,19 @@
 % Please edit documentation in R/get_cd.R
 \name{get_cd}
 \alias{get_cd}
-\title{Download chromedriver}
+\title{Download ChromeDriver}
 \usage{
 get_cd(dest_dir)
 }
 \arguments{
-\item{dest_dir}{The path of chrome browser driver and selenium server}
+\item{dest_dir}{Directory containing the WebDriver binaries.}
+}
+\value{
+Invisibly NULL. Downloads or reuses a compatible ChromeDriver.
 }
 \description{
-Download chromedriver
+Download ChromeDriver
 }
 \examples{
-get_cd(dest_dir = "C:/Users/Dell/Desktop/test")
+\dontrun{get_cd("C:/pptsdd-webdriver")}
 }
