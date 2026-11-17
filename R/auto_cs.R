@@ -130,7 +130,7 @@ service_ready <- function(pid) {
       httr2::req_options(noproxy = "127.0.0.1") |>
       httr2::req_timeout(1) |>
       httr2::req_perform() |>
-      httr2::resp_body_json()
+      response_json()
   }, error = function(error) NULL)
   if (!is.list(response)) return(FALSE)
   ready <- if (is.list(response$value)) response$value$ready else NULL

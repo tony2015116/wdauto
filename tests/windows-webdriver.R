@@ -8,7 +8,13 @@ if (identical(Sys.getenv("WDAUTO_WINDOWS_SMOKE"), "true")) {
     old_localappdata <- Sys.getenv("LOCALAPPDATA")
     old_appdata <- Sys.getenv("APPDATA")
     Sys.setenv(LOCALAPPDATA = root, APPDATA = root)
+    passed <- FALSE
     on.exit({
+      if (!passed) {
+        for (log in list.files(root, pattern = "\\.log$", full.names = TRUE, recursive = TRUE)) {
+          message(log, "\n", paste(tail(readLines(log, warn = FALSE), 30L), collapse = "\n"))
+        }
+      }
       try(reset_cs(), silent = TRUE)
       Sys.setenv(LOCALAPPDATA = old_localappdata, APPDATA = old_appdata)
       unlink(root, recursive = TRUE)
@@ -61,5 +67,6 @@ if (identical(Sys.getenv("WDAUTO_WINDOWS_SMOKE"), "true")) {
     reset_cs()
     stopifnot(!file.exists(state_file), !file.exists(batch), file.exists(other),
               !ps::ps_is_running(ps::ps_handle(state$pid, time = state$time)))
+    passed <- TRUE
   })
 }

@@ -69,6 +69,10 @@ driver_request <- function(url) {
     httr2::req_perform()
 }
 
+response_json <- function(response) {
+  jsonlite::fromJSON(httr2::resp_body_string(response), simplifyVector = FALSE)
+}
+
 find_chromedriver <- function(chrome) {
   milestone <- as.integer(sub("\\..*$", "", chrome$version))
   if (milestone <= 114L) {
@@ -83,9 +87,9 @@ find_chromedriver <- function(chrome) {
   }
 
   root <- "https://googlechromelabs.github.io/chrome-for-testing"
-  builds <- httr2::resp_body_json(driver_request(paste0(root, "/latest-patch-versions-per-build-with-downloads.json")))
+  builds <- response_json(driver_request(paste0(root, "/latest-patch-versions-per-build-with-downloads.json")))
   build_release(chrome$version, chrome$platform, builds$builds, function() {
-    httr2::resp_body_json(driver_request(paste0(root, "/latest-versions-per-milestone-with-downloads.json")))$milestones
+    response_json(driver_request(paste0(root, "/latest-versions-per-milestone-with-downloads.json")))$milestones
   })
 }
 

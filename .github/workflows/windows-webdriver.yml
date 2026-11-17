@@ -23,7 +23,7 @@ jobs:
       - name: Install wdauto
         shell: Rscript {0}
         run: |
-          install.packages(c("filelock", "httr2", "processx", "ps"))
+          install.packages(c("filelock", "httr2", "jsonlite", "processx", "ps"))
           stopifnot(system2(file.path(R.home("bin"), "R"), c("CMD", "INSTALL", ".")) == 0L)
       - name: Test lifecycle, compatibility, and CSV download
         shell: bash

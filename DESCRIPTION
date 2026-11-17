@@ -15,6 +15,7 @@ Depends:
 Imports:
     filelock,
     httr2,
+    jsonlite,
     processx,
     ps,
     utils
