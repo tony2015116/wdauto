@@ -1,4 +1,4 @@
-# wdauto <a href="https://tony2015116.github.io/wdauto/"><img src="man/figures/logo.svg" width="120" align="right" alt="wdauto logo"></a>
+# wdauto <a href="https://tony2015116.github.io/wdauto/"><img src="man/figures/logo.png" width="120" height="139" align="right" alt="wdauto logo"></a>
 
 <!-- badges: start -->
 [![Windows](https://badgen.net/badge/icon/windows?icon=windows&label)](https://microsoft.com/windows/)
