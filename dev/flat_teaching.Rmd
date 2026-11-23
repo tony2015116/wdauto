@@ -147,6 +147,7 @@ mirror_rules <- function() {
 
 # Mirror URLs are tried first; the official URL is always the last fallback.
 candidate_urls <- function(url, rules = mirror_rules()) {
+  if (!length(rules)) return(url)
   hits <- rules[startsWith(url, names(rules))]
   if (!length(hits)) return(url)
   unique(c(paste0(sub("/+$", "", hits), substring(url, nchar(names(hits)) + 1L)), url))

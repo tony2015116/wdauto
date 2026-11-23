@@ -57,7 +57,10 @@ local({
             !env$driver_compatible("155.0.8076.11", "156.0.8080.1"),
             !env$driver_compatible(NA_character_, "156.0.8080.1"))
 
-  old <- options(wdauto.mirror = "npmmirror")
+  Sys.unsetenv("WDAUTO_MIRROR")
+  old <- options(wdauto.mirror = NULL)
+  stopifnot(identical(env$candidate_urls("https://example.org/x"), "https://example.org/x"))
+  options(wdauto.mirror = "npmmirror")
   stopifnot(identical(env$candidate_urls("https://storage.googleapis.com/chrome-for-testing-public/1.2.3.4/win64/x.zip"),
                       c("https://cdn.npmmirror.com/binaries/chrome-for-testing/1.2.3.4/win64/x.zip",
                         "https://storage.googleapis.com/chrome-for-testing-public/1.2.3.4/win64/x.zip")),
