@@ -2,31 +2,48 @@
 
 #' Download Selenium Server
 #'
+#' Only needed for the default `backend = "selenium"` of `auto_cs()` with
+#' Chrome. The JAR is downloaded from the configured mirror (see `get_cd()`),
+#' the Selenium release bucket, or GitHub Releases, in that order.
+#'
 #' @param dest_dir Directory containing the WebDriver binaries.
-#' @return Invisibly NULL. Downloads or reuses the supported standalone JAR.
+#' @param jar Optional path to a `selenium-server-standalone-3.141.59.jar` that
+#'   was downloaded manually.
+#' @return Invisibly, the path of the Selenium JAR.
 #' @export
 #' @examples
 #' \dontrun{get_ss("C:/pptsdd-webdriver")}
-get_ss <- function(dest_dir) {
+get_ss <- function(dest_dir, jar = NULL) {
   version <- "3.141.59"
   filename <- paste0("selenium-server-standalone-", version, ".jar")
   root <- file.path(prepare_directory(dest_dir), "selenium")
-  if (valid_selenium_jar(file.path(root, "3.141", filename))) return(invisible(NULL))
+  legacy <- file.path(root, "3.141", filename)
+  if (is.null(jar) && valid_selenium_jar(legacy)) return(invisible(legacy))
   directory <- prepare_directory(file.path(root, version))
-  jar <- file.path(directory, filename)
+  target <- file.path(directory, filename)
   lock <- directory_lock(file.path(directory, ".download.lock"))
   on.exit(filelock::unlock(lock))
-  if (valid_selenium_jar(jar)) return(invisible(NULL))
+  if (is.null(jar) && valid_selenium_jar(target)) return(invisible(target))
 
   stage <- tempfile(".selenium-", tmpdir = directory, fileext = ".jar")
   on.exit(unlink(stage), add = TRUE)
-  httr2::request(paste0("https://selenium-release.storage.googleapis.com/3.141/", filename)) |>
-    httr2::req_retry(max_tries = 3) |>
-    httr2::req_timeout(120) |>
-    httr2::req_perform(path = stage)
-  if (!valid_selenium_jar(stage)) stop("Downloaded Selenium JAR is invalid.", call. = FALSE)
-  if (!file.rename(stage, jar)) stop("Cannot install the Selenium JAR: ", jar, call. = FALSE)
-  invisible(NULL)
+  if (!is.null(jar)) {
+    if (!is.character(jar) || length(jar) != 1L || !file.copy(jar, stage)) {
+      stop("jar must be the path of an existing Selenium JAR.", call. = FALSE)
+    }
+  } else {
+    downloaded <- tryCatch({
+      fetch_first(paste0("https://selenium-release.storage.googleapis.com/3.141/", filename), stage)
+      TRUE
+    }, wdauto_download_error = function(error) error)
+    if (!isTRUE(downloaded)) {
+      fetch_first(paste0("https://github.com/SeleniumHQ/selenium/releases/download/selenium-", version, "/", filename),
+                  stage)
+    }
+  }
+  if (!valid_selenium_jar(stage)) stop("The Selenium JAR is invalid.", call. = FALSE)
+  if (!file.rename(stage, target)) stop("Cannot install the Selenium JAR: ", target, call. = FALSE)
+  invisible(target)
 }
 
 valid_selenium_jar <- function(path) {

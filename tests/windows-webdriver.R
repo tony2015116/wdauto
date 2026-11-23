@@ -1,8 +1,9 @@
 if (identical(Sys.getenv("WDAUTO_WINDOWS_SMOKE"), "true")) {
   library(wdauto)
-  smoke_test <- function(browser) {
+  smoke_test <- function(browser, backend = "selenium") {
     edge <- browser == "edge"
-    stopifnot(.Platform$OS.type == "windows", nzchar(Sys.which("java")))
+    selenium <- !edge && backend == "selenium"
+    stopifnot(.Platform$OS.type == "windows", !selenium || nzchar(Sys.which("java")))
     root <- tempfile("wdauto-windows-")
     dir.create(root)
     dest <- file.path(root, "webdriver")
@@ -16,18 +17,21 @@ if (identical(Sys.getenv("WDAUTO_WINDOWS_SMOKE"), "true")) {
           message(log, "\n", paste(tail(readLines(log, warn = FALSE), 30L), collapse = "\n"))
         }
       }
-      try(reset_cs(browser), silent = TRUE)
+      try(suppressWarnings(reset_cs(browser)), silent = TRUE)
       Sys.setenv(LOCALAPPDATA = old_localappdata, APPDATA = old_appdata)
       unlink(root, recursive = TRUE)
     })
 
-    get_cd(dest, browser)
-    if (!edge) get_ss(dest)
-    auto_cs(dest, browser = browser)
+    driver <- get_cd(dest, browser)
+    stopifnot(file.exists(driver), identical(get_cd(dest, browser), driver))
+    if (selenium) stopifnot(file.exists(get_ss(dest)))
+    auto_cs(dest, browser = browser, backend = backend)
     state_file <- file.path(wdauto:::service_directory(browser), "service.rds")
     state <- readRDS(state_file)
-    auto_cs(dest, browser = browser)
+    auto_cs(dest, browser = browser, backend = backend)
     stopifnot(identical(readRDS(state_file)$pid, state$pid))
+    entry <- wdauto:::startup_file(browser)
+    stopifnot(wdauto:::owned_startup(entry), wdauto:::read_text_lines(entry)[[1L]] == "' wdauto managed startup")
 
     http <- function(path, body = NULL, method = NULL) {
       base <- if (edge) "http://127.0.0.1:4445" else "http://127.0.0.1:4444/wd/hub"
@@ -45,6 +49,8 @@ if (identical(Sys.getenv("WDAUTO_WINDOWS_SMOKE"), "true")) {
                                  download.prompt_for_download = FALSE))
     body <- if (edge) {
       list(capabilities = list(alwaysMatch = list(browserName = "MicrosoftEdge", "ms:edgeOptions" = options)))
+    } else if (!selenium) {
+      list(capabilities = list(alwaysMatch = list(browserName = "chrome", "goog:chromeOptions" = options)))
     } else {
       list(desiredCapabilities = list(browserName = "chrome", chromeOptions = options))
     }
@@ -74,8 +80,9 @@ if (identical(Sys.getenv("WDAUTO_WINDOWS_SMOKE"), "true")) {
     stopifnot(!file.exists(state_file), !file.exists(batch), file.exists(other),
               !ps::ps_is_running(ps::ps_handle(state$pid, time = state$time)))
     passed <- TRUE
-    message(browser, " WebDriver session and CSV download passed.")
+    message(browser, " (", backend, ") WebDriver session and CSV download passed.")
   }
   smoke_test("chrome")
+  smoke_test("chrome", backend = "chromedriver")
   smoke_test("edge")
 }

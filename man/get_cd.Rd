@@ -4,18 +4,26 @@
 \alias{get_cd}
 \title{Download a browser WebDriver}
 \usage{
-get_cd(dest_dir, browser = c("chrome", "edge"))
+get_cd(dest_dir, browser = c("chrome", "edge"), zip = NULL)
 }
 \arguments{
 \item{dest_dir}{Directory containing the WebDriver binaries.}
 
 \item{browser}{Browser to manage, either \code{chrome} or \code{edge}.}
+
+\item{zip}{Optional path to a driver archive that was downloaded manually,
+for computers without access to the download servers.}
 }
 \value{
-Invisibly NULL. Downloads or reuses a compatible driver.
+Invisibly, the path of the driver executable.
 }
 \description{
-Download a browser WebDriver
+Resolves the WebDriver that matches the installed browser and stores it in
+\code{dest_dir}. A cached driver for the same browser milestone is reused without
+network access. Set \code{options(wdauto.mirror = "npmmirror")} (or the
+\code{WDAUTO_MIRROR} environment variable) to try a mirror before the official
+download servers. A named character vector of URL prefixes and their
+replacements can be used for any other mirror.
 }
 \examples{
 \dontrun{get_cd("C:/pptsdd-webdriver")}

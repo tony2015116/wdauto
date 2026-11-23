@@ -13,7 +13,9 @@ reset_cs(browser = c("chrome", "edge"))
 Invisibly NULL.
 }
 \description{
-Stop the managed browser driver and remove its login startup entry
+\code{reset_cs()} is the recovery tool: an unreadable process record or a
+process that cannot be verified produces a warning, and the startup entry
+is still removed.
 }
 \examples{
 \dontrun{reset_cs()}

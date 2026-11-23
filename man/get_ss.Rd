@@ -4,16 +4,21 @@
 \alias{get_ss}
 \title{Download Selenium Server}
 \usage{
-get_ss(dest_dir)
+get_ss(dest_dir, jar = NULL)
 }
 \arguments{
 \item{dest_dir}{Directory containing the WebDriver binaries.}
+
+\item{jar}{Optional path to a \verb{selenium-server-standalone-3.141.59.jar} that
+was downloaded manually.}
 }
 \value{
-Invisibly NULL. Downloads or reuses the supported standalone JAR.
+Invisibly, the path of the Selenium JAR.
 }
 \description{
-Download Selenium Server
+Only needed for the default \code{backend = "selenium"} of \code{auto_cs()} with
+Chrome. The JAR is downloaded from the configured mirror (see \code{get_cd()}),
+the Selenium release bucket, or GitHub Releases, in that order.
 }
 \examples{
 \dontrun{get_ss("C:/pptsdd-webdriver")}

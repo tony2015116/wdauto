@@ -2,44 +2,61 @@
 
 #' Start a local WebDriver service
 #'
+#' Starts, or reuses, the managed WebDriver service for one browser. Chrome is
+#' served at `127.0.0.1:4444/wd/hub` and Edge at `127.0.0.1:4445`.
+#'
 #' @param dest_dir Directory containing the WebDriver binaries.
-#' @param autostart Whether to install or update the Windows login startup entry.
-#'   Use FALSE to start the service without writing a startup entry.
+#' @param autostart Whether to install or update the hidden Windows login
+#'   startup entry. Use FALSE to start the service without writing it.
 #' @param browser Browser to manage, either `chrome` or `edge`.
+#' @param backend Chrome only. `"selenium"` runs Selenium Server 3.141.59 on
+#'   Java, which also accepts the legacy JSON Wire protocol used by RSelenium.
+#'   `"chromedriver"` runs ChromeDriver directly at the same address
+#'   (W3C protocol only) and needs neither Java nor `get_ss()`.
+#' @param restart What to do when the running service uses a different driver,
+#'   for example after a browser update. `"if_idle"` restarts it when it has
+#'   no open sessions; `"never"` raises an error instead.
 #' @return Invisibly NULL once the service is ready.
 #' @export
 #' @examples
 #' \dontrun{auto_cs("C:/pptsdd-webdriver")}
-auto_cs <- function(dest_dir, autostart = TRUE, browser = c("chrome", "edge")) {
+auto_cs <- function(dest_dir, autostart = TRUE, browser = c("chrome", "edge"),
+                    backend = c("selenium", "chromedriver"), restart = c("if_idle", "never")) {
   browser <- match.arg(browser)
-  port <- webdriver_port(browser)
+  backend <- if (browser == "edge") "edgedriver" else match.arg(backend)
+  restart <- match.arg(restart)
   require_windows()
-  dest_dir <- prepare_directory(dest_dir)
   stopifnot(is.logical(autostart), length(autostart) == 1L, !is.na(autostart))
+  dest_dir <- prepare_directory(dest_dir)
+  port <- webdriver_port(browser)
   state_dir <- service_directory(browser)
   lock <- directory_lock(file.path(state_dir, "service.lock"))
   on.exit(filelock::unlock(lock), add = TRUE)
 
   driver <- ensure_browser_driver(dest_dir, browser)
-  jar <- if (browser == "chrome") installed_selenium_jar(dest_dir) else NULL
+  jar <- if (backend == "selenium") installed_selenium_jar(dest_dir) else NULL
   state_file <- file.path(state_dir, "service.rds")
   state <- read_service_state(state_file)
   handle <- owned_process(state)
-  if (!is.null(handle)) {
-    if (!identical(state$driver, driver) || !identical(state$jar, jar)) {
-      stop("WebDriver is still running with different binaries. Finish active downloads, run reset_cs(), then start again.",
-           call. = FALSE)
+  if (!is.null(handle) && !same_service(state, backend, driver, jar)) {
+    if (restart == "never" || !service_idle(backend, port)) {
+      stop("WebDriver is still running with different binaries and has open sessions. ",
+           "Finish active downloads, run reset_cs(), then start again.", call. = FALSE)
     }
-    if (!with_wait(function() service_ready(state$pid, browser))) {
+    stop_service(handle)
+    handle <- NULL
+  }
+  if (!is.null(handle)) {
+    if (!with_wait(function() service_ready(state$pid, browser, backend))) {
       stop("Managed WebDriver is running but not ready. Logs: ", state$log_dir, call. = FALSE)
     }
   } else {
     if (length(listener_pids(port))) {
       stop("Port ", port, " is in use by a service not managed by this wdauto installation.", call. = FALSE)
     }
-    launch_webdriver(browser, jar, driver, state_dir, state_file)
+    launch_webdriver(browser, backend, jar, driver, state_dir, state_file)
   }
-  if (autostart) configure_startup(state_dir, dest_dir, browser)
+  if (autostart) configure_startup(state_dir, dest_dir, browser, backend)
   invisible(NULL)
 }
 
@@ -59,6 +76,16 @@ prepare_directory <- function(path) {
 
 webdriver_port <- function(browser) if (browser == "edge") 4445L else 4444L
 
+service_route <- function(backend) if (backend == "edgedriver") "" else "/wd/hub"
+
+state_backend <- function(state) {
+  if (!is.null(state$backend)) state$backend else if (identical(state$browser, "edge")) "edgedriver" else "selenium"
+}
+
+same_service <- function(state, backend, driver, jar) {
+  identical(state_backend(state), backend) && identical(state$driver, driver) && identical(state$jar, jar)
+}
+
 service_directory <- function(browser = "chrome") {
   root <- Sys.getenv("LOCALAPPDATA")
   if (!nzchar(root)) stop("LOCALAPPDATA is not set for this Windows account.", call. = FALSE)
@@ -77,8 +104,11 @@ run_tool <- function(command, args, env = NULL, combine_output = FALSE) {
   result <- processx::run(command, args, env = env, timeout = 10000,
                           error_on_status = FALSE, windows_hide_window = TRUE,
                           stderr_to_stdout = combine_output)
-  if (result$status != 0L || result$timeout) {
-    stop(basename(command), " failed: ", trimws(result$stderr), call. = FALSE)
+  if (result$status != 0L || isTRUE(result$timeout)) {
+    detail <- trimws(paste(result$stderr, result$stdout))
+    if (isTRUE(result$timeout)) detail <- paste("timed out after 10 seconds.", detail)
+    if (!nzchar(detail)) detail <- paste("exit status", result$status)
+    stop(basename(command), " failed: ", detail, call. = FALSE)
   }
   result$stdout
 }
@@ -92,12 +122,13 @@ installed_selenium_jar <- function(dest_dir) {
       if (valid_selenium_jar(jar)) return(jar)
     }
   }
-  stop("No valid standalone Selenium JAR found. Check the Selenium cache and run get_ss(dest_dir).", call. = FALSE)
+  stop("No valid standalone Selenium JAR found. Run get_ss(dest_dir), or use backend = \"chromedriver\".",
+       call. = FALSE)
 }
 
 read_service_state <- function(path) {
   if (!file.exists(path)) return(NULL)
-  state <- readRDS(path)
+  state <- tryCatch(readRDS(path), error = function(error) NULL)
   if (!is.list(state) || !all(c("pid", "time", "marker", "java", "driver", "jar", "log_dir") %in% names(state))) {
     stop("Invalid wdauto process record: ", path, call. = FALSE)
   }
@@ -111,13 +142,25 @@ owned_process <- function(state) {
     if (!ps::ps_is_running(handle)) return(NULL)
     args <- ps::ps_cmdline(handle)
     executable <- normalizePath(ps::ps_exe(handle), winslash = "/", mustWork = FALSE)
-    expected <- if (identical(state$browser, "edge")) state$marker else
+    expected <- if (is.null(state$jar)) state$marker else
       c(state$marker, state$jar, paste0("-Dwebdriver.chrome.driver=", state$driver))
     if (!identical(tolower(executable), tolower(state$java)) || !all(expected %in% args)) {
       stop("The process at the recorded PID could not be verified as owned by wdauto.", call. = FALSE)
     }
     handle
-  }, no_such_process = function(error) NULL)
+  }, no_such_process = function(error) NULL, zombie_process = function(error) NULL)
+}
+
+stop_service <- function(handle) {
+  children <- tryCatch(ps::ps_children(handle, recursive = TRUE), error = function(error) list())
+  tryCatch(ps::ps_kill(handle), no_such_process = function(error) NULL)
+  for (child in children) {
+    tryCatch(ps::ps_kill(child), error = function(error) NULL)
+  }
+  if (!with_wait(function() !ps::ps_is_running(handle))) {
+    stop("Timed out waiting for managed WebDriver to stop.", call. = FALSE)
+  }
+  invisible(NULL)
 }
 
 listener_pids <- function(port = 4444L) {
@@ -130,20 +173,27 @@ listener_pids <- function(port = 4444L) {
   unique(vapply(matching, function(row) as.integer(row[5L]), integer(1)))
 }
 
-service_ready <- function(pid, browser = "chrome") {
+local_request <- function(port, path) {
+  httr2::request(paste0("http://127.0.0.1:", port, path)) |>
+    httr2::req_options(noproxy = "127.0.0.1") |>
+    httr2::req_timeout(2) |>
+    httr2::req_perform() |>
+    response_json()
+}
+
+service_ready <- function(pid, browser = "chrome", backend = "selenium") {
   port <- webdriver_port(browser)
-  route <- if (browser == "edge") "/status" else "/wd/hub/status"
-  response <- tryCatch({
-    httr2::request(paste0("http://127.0.0.1:", port, route)) |>
-      httr2::req_options(noproxy = "127.0.0.1") |>
-      httr2::req_timeout(1) |>
-      httr2::req_perform() |>
-      response_json()
-  }, error = function(error) NULL)
+  response <- tryCatch(local_request(port, paste0(service_route(backend), "/status")), error = function(error) NULL)
   if (!is.list(response)) return(FALSE)
   ready <- if (is.list(response$value)) response$value$ready else NULL
   if (is.null(ready)) ready <- identical(response$status, 0L) || identical(response$status, 0)
   isTRUE(ready) && pid %in% listener_pids(port)
+}
+
+# TRUE only when the service reports that no session is open.
+service_idle <- function(backend, port) {
+  response <- tryCatch(local_request(port, paste0(service_route(backend), "/sessions")), error = function(error) NULL)
+  is.list(response) && is.list(response$value) && length(response$value) == 0L
 }
 
 with_wait <- function(ready, seconds = 30) {
@@ -155,20 +205,31 @@ with_wait <- function(ready, seconds = 30) {
   }
 }
 
-launch_webdriver <- function(browser, jar, driver, state_dir, state_file) {
+prune_logs <- function(state_dir, keep = 5L) {
+  logs <- list.files(state_dir, "^webdriver-", full.names = TRUE, include.dirs = TRUE)
+  logs <- logs[dir.exists(logs)]
+  if (length(logs) <= keep) return(invisible(NULL))
+  unlink(logs[order(file.mtime(logs), decreasing = TRUE)][-seq_len(keep)], recursive = TRUE)
+  invisible(NULL)
+}
+
+launch_webdriver <- function(browser, backend, jar, driver, state_dir, state_file) {
   port <- webdriver_port(browser)
+  prune_logs(state_dir, keep = 4L)
   log_dir <- prepare_directory(tempfile("webdriver-", tmpdir = state_dir))
-  if (browser == "edge") {
-    command <- driver
-    marker <- paste0("--log-path=", file.path(log_dir, "driver.log"))
-    args <- c(marker, paste0("--port=", port), "--allowed-ips=127.0.0.1")
-  } else {
+  if (backend == "selenium") {
     command <- unname(Sys.which("java"))
-    if (!nzchar(command)) stop("Java was not found on PATH.", call. = FALSE)
+    if (!nzchar(command)) stop("Java was not found on PATH. Install Java or use backend = \"chromedriver\".", call. = FALSE)
     run_tool(command, "-version")
     marker <- paste0("-Dwdauto.instance=", basename(log_dir))
     args <- c(marker, paste0("-Dwebdriver.chrome.driver=", driver),
               "-jar", jar, "-host", "127.0.0.1", "-port", as.character(port))
+  } else {
+    # Without --allowed-ips the driver only listens on the loopback interface.
+    command <- driver
+    marker <- paste0("--log-path=", file.path(log_dir, "driver.log"))
+    args <- c(marker, paste0("--port=", port))
+    if (backend == "chromedriver") args <- c(args, "--url-base=/wd/hub")
   }
   command <- normalizePath(command, winslash = "/", mustWork = TRUE)
   process <- processx::process$new(command, args,
@@ -185,61 +246,136 @@ launch_webdriver <- function(browser, jar, driver, state_dir, state_file) {
     stop("WebDriver exited or could not be identified. Logs: ", log_dir, call. = FALSE)
   })
   state <- list(pid = pid, time = time, marker = marker, java = command, browser = browser,
-                driver = driver, jar = jar, log_dir = log_dir)
+                backend = backend, driver = driver, jar = jar, log_dir = log_dir)
   pending <- tempfile(".service-", tmpdir = state_dir)
   on.exit(unlink(pending), add = TRUE)
   saveRDS(state, pending)
   if (!file.rename(pending, state_file)) stop("Cannot save wdauto process state: ", state_file, call. = FALSE)
   ready <- with_wait(function() {
     if (!process$is_alive()) stop("WebDriver exited during startup. Logs: ", log_dir, call. = FALSE)
-    service_ready(pid, browser)
+    service_ready(pid, browser, backend)
   })
   if (!ready) stop("Timed out waiting for WebDriver on port ", port, ". Logs: ", log_dir, call. = FALSE)
   started <- TRUE
 }
 
-startup_file <- function(browser = "chrome") {
+startup_folder <- function() {
   appdata <- Sys.getenv("APPDATA")
   if (!nzchar(appdata)) stop("APPDATA is not set for this Windows account.", call. = FALSE)
-  filename <- if (browser == "edge") "wdauto_edge.bat" else "chrome_driver.bat"
-  file.path(appdata, "Microsoft", "Windows", "Start Menu", "Programs", "Startup", filename)
+  file.path(appdata, "Microsoft", "Windows", "Start Menu", "Programs", "Startup")
+}
+
+startup_file <- function(browser = "chrome") {
+  file.path(startup_folder(), paste0("wdauto_", browser, ".vbs"))
+}
+
+# Batch launchers written by earlier wdauto releases.
+legacy_startup_file <- function(browser = "chrome") {
+  file.path(startup_folder(), if (browser == "edge") "wdauto_edge.bat" else "chrome_driver.bat")
+}
+
+startup_marker <- c("rem wdauto managed startup", "' wdauto managed startup")
+
+read_text_lines <- function(file) {
+  bytes <- readBin(file, "raw", file.size(file))
+  text <- if (length(bytes) >= 2L && identical(as.integer(bytes[1:2]), c(255L, 254L))) {
+    iconv(list(bytes[-(1:2)]), from = "UTF-16LE", to = "UTF-8")
+  } else {
+    rawToChar(bytes[bytes != as.raw(0L)])
+  }
+  if (is.na(text)) return(character())
+  strsplit(text, "\r?\n")[[1L]]
 }
 
 owned_startup <- function(file) {
   if (!file.exists(file)) return(FALSE)
-  lines <- readLines(file, warn = FALSE)
-  any(lines == "rem wdauto managed startup") ||
+  lines <- tryCatch(read_text_lines(file), error = function(error) character())
+  any(lines %in% startup_marker) ||
     (any(startsWith(lines, "mshta vbscript:createobject(")) &&
        any(startsWith(lines, "java -Dwebdriver.chrome.driver=") &
              grepl("selenium-server-standalone-", lines, fixed = TRUE)))
 }
 
-replace_lines <- function(lines, path) {
+replace_file <- function(path, write) {
   temp <- tempfile(".wdauto-", tmpdir = dirname(path))
   on.exit(unlink(temp))
-  writeLines(lines, temp)
+  write(temp)
   if (!file.rename(temp, path)) stop("Cannot update wdauto file: ", path, call. = FALSE)
 }
 
-configure_startup <- function(state_dir, dest_dir, browser = "chrome") {
-  batch <- startup_file(browser)
-  if (file.exists(batch) && !owned_startup(batch)) {
-    warning("Another startup entry already uses ", batch, ". It was preserved.", call. = FALSE)
+replace_lines <- function(lines, path) replace_file(path, function(temp) writeLines(lines, temp))
+
+# Windows Script Host reads UTF-16LE scripts with a BOM regardless of the code
+# page, so paths with Chinese or other non-ASCII characters stay intact.
+write_utf16_lines <- function(lines, path) {
+  text <- paste0(paste(enc2utf8(lines), collapse = "\r\n"), "\r\n")
+  bytes <- c(as.raw(c(0xFF, 0xFE)), iconv(text, from = "UTF-8", to = "UTF-16LE", toRaw = TRUE)[[1L]])
+  replace_file(path, function(temp) writeBin(bytes, temp))
+}
+
+configure_startup <- function(state_dir, dest_dir, browser = "chrome", backend = "selenium") {
+  entry <- startup_file(browser)
+  if (file.exists(entry) && !owned_startup(entry)) {
+    warning("Another startup entry already uses ", entry, ". It was preserved.", call. = FALSE)
     return(invisible(NULL))
   }
+  legacy <- legacy_startup_file(browser)
+  if (owned_startup(legacy)) {
+    unlink(legacy)
+  } else if (file.exists(legacy)) {
+    warning("A startup entry not managed by wdauto exists at ", legacy,
+            ". It may start another WebDriver at login.", call. = FALSE)
+  }
   script <- file.path(state_dir, "startup.R")
-  rscript <- file.path(R.home("bin"), "Rscript.exe")
   lib <- dirname(getNamespaceInfo(asNamespace("wdauto"), "path"))
+  mirror <- getOption("wdauto.mirror")
   replace_lines(c(
     paste0(".libPaths(c(", encodeString(lib, quote = '"'), ", .libPaths()))"),
-    paste0("wdauto::auto_cs(", encodeString(dest_dir, quote = '"'), ", autostart = FALSE, browser = ", encodeString(browser, quote = '"'), ")")
+    if (!is.null(mirror)) paste0("options(wdauto.mirror = ", deparse1(mirror), ")"),
+    paste0("wdauto:::run_startup(", encodeString(dest_dir, quote = '"'),
+           ", browser = ", encodeString(browser, quote = '"'),
+           ", backend = ", encodeString(if (backend == "edgedriver") "selenium" else backend, quote = '"'),
+           ", log = ", encodeString(file.path(state_dir, "startup.log"), quote = '"'), ")")
   ), script)
-  quote_batch <- function(path) paste0('"', gsub("%", "%%", path, fixed = TRUE), '"')
-  prepare_directory(dirname(batch))
-  replace_lines(c(
-    "@echo off", "rem wdauto managed startup", "setlocal DisableDelayedExpansion",
-    paste(quote_batch(rscript), "--no-save --no-restore", quote_batch(script),
-          ">>", quote_batch(file.path(state_dir, "startup.log")), "2>&1")
-  ), batch)
+  windows_path <- function(path) gsub("/", "\\", path, fixed = TRUE)
+  vbs_quote <- function(path) paste0('""', gsub('"', '""', windows_path(path), fixed = TRUE), '""')
+  rscript <- file.path(R.home("bin"), "Rscript.exe")
+  prepare_directory(dirname(entry))
+  write_utf16_lines(c(
+    startup_marker[[2L]],
+    paste0('CreateObject("WScript.Shell").Run "', vbs_quote(rscript), " --no-save --no-restore ",
+           vbs_quote(script), '", 0, False')
+  ), entry)
   invisible(NULL)
+}
+
+# Runs at login. The network or the browser updater may not be ready yet, so
+# the start is retried before giving up.
+run_startup <- function(dest_dir, browser = "chrome", backend = "selenium", log,
+                        attempts = 5L, wait = 30) {
+  if (file.exists(log) && isTRUE(file.size(log) > 1e6)) file.rename(log, paste0(log, ".old"))
+  con <- file(log, open = "a", encoding = "UTF-8")
+  sink(con)
+  sink(con, type = "message")
+  on.exit({
+    sink(type = "message")
+    sink()
+    close(con)
+  })
+  for (attempt in seq_len(attempts)) {
+    message(format(Sys.time()), " starting ", browser, " WebDriver (attempt ", attempt, ")")
+    started <- tryCatch({
+      auto_cs(dest_dir, autostart = FALSE, browser = browser, backend = backend)
+      TRUE
+    }, error = function(error) {
+      message("  ", conditionMessage(error))
+      FALSE
+    })
+    if (started) {
+      message("  ready")
+      return(invisible(TRUE))
+    }
+    if (attempt < attempts) Sys.sleep(wait)
+  }
+  invisible(FALSE)
 }
