@@ -6,10 +6,12 @@
 [![GitHub last commit](https://img.shields.io/github/last-commit/tony2015116/wdauto)](https://github.com/tony2015116/wdauto/commits/main/)
 <!-- badges: end -->
 
-`wdauto` prepares and starts the local Selenium WebDriver service used by
+`wdauto` prepares and starts the local WebDriver service used by
 [tidypptsdd](https://github.com/tony2015116/tidypptsdd) to download reports through Chrome or Edge.
 It runs on x86 and x64 Windows with R 4.1 or newer and the selected browser installed.
-Chrome uses Selenium and requires Java on PATH. Edge uses Microsoft Edge WebDriver directly.
+Chrome runs through ChromeDriver with `backend = "chromedriver"` (no Java needed, used by
+tidypptsdd), or through Selenium Server 3.141.59 on Java for RSelenium clients (the default).
+Edge uses Microsoft Edge WebDriver directly.
 
 ## Installation
 
