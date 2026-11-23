@@ -2,16 +2,25 @@
 
 #' Download a browser WebDriver
 #'
+#' Resolves the WebDriver that matches the installed browser and stores it in
+#' `dest_dir`. A cached driver for the same browser milestone is reused without
+#' network access. Set `options(wdauto.mirror = "npmmirror")` (or the
+#' `WDAUTO_MIRROR` environment variable) to try a mirror before the official
+#' download servers. A named character vector of URL prefixes and their
+#' replacements can be used for any other mirror.
+#'
 #' @param dest_dir Directory containing the WebDriver binaries.
 #' @param browser Browser to manage, either `chrome` or `edge`.
-#' @return Invisibly NULL. Downloads or reuses a compatible driver.
+#' @param zip Optional path to a driver archive that was downloaded manually,
+#'   for computers without access to the download servers.
+#' @return Invisibly, the path of the driver executable.
 #' @export
 #' @examples
 #' \dontrun{get_cd("C:/pptsdd-webdriver")}
-get_cd <- function(dest_dir, browser = c("chrome", "edge")) {
+get_cd <- function(dest_dir, browser = c("chrome", "edge"), zip = NULL) {
+  browser <- match.arg(browser)
   require_windows()
-  ensure_browser_driver(prepare_directory(dest_dir), match.arg(browser))
-  invisible(NULL)
+  invisible(ensure_browser_driver(prepare_directory(dest_dir), browser, zip))
 }
 
 browser_installation <- function(browser) {
@@ -53,9 +62,17 @@ is_chrome_version <- function(version) {
 
 chrome_build <- function(version) sub("\\.[0-9]+$", "", version)
 
+chrome_milestone <- function(version) sub("\\..*$", "", version)
+
+# Chrome and Edge drivers only reject browsers from a different milestone.
+driver_compatible <- function(driver_version, browser_version) {
+  is_chrome_version(driver_version) &&
+    identical(chrome_milestone(driver_version), chrome_milestone(browser_version))
+}
+
 build_release <- function(version, platform, builds, milestones = function() list()) {
   build <- chrome_build(version)
-  milestone <- sub("\\..*$", "", version)
+  milestone <- chrome_milestone(version)
   release <- builds[[build]]
   if (is.null(release)) release <- milestones()[[milestone]]
   if (is.null(release) || !is_chrome_version(release$version) ||
@@ -68,35 +85,120 @@ build_release <- function(version, platform, builds, milestones = function() lis
   stop("No ChromeDriver for ", platform, " in release ", release$version, ".", call. = FALSE)
 }
 
-driver_request <- function(url) {
-  httr2::request(url) |>
-    httr2::req_timeout(60) |>
+npmmirror_rules <- c(
+  "https://storage.googleapis.com/chrome-for-testing-public" = "https://cdn.npmmirror.com/binaries/chrome-for-testing",
+  "https://chromedriver.storage.googleapis.com" = "https://registry.npmmirror.com/-/binary/chromedriver",
+  "https://selenium-release.storage.googleapis.com" = "https://registry.npmmirror.com/-/binary/selenium"
+)
+
+mirror_rules <- function() {
+  rules <- getOption("wdauto.mirror", Sys.getenv("WDAUTO_MIRROR"))
+  if (is.null(rules) || identical(rules, "") || identical(rules, FALSE)) return(character())
+  if (identical(rules, "npmmirror")) return(npmmirror_rules)
+  if (!is.character(rules) || is.null(names(rules)) || anyNA(rules) || !all(nzchar(names(rules)))) {
+    stop("wdauto.mirror must be \"npmmirror\" or a named character vector of URL prefixes.", call. = FALSE)
+  }
+  rules
+}
+
+# Mirror URLs are tried first; the official URL is always the last fallback.
+candidate_urls <- function(url, rules = mirror_rules()) {
+  hits <- rules[startsWith(url, names(rules))]
+  if (!length(hits)) return(url)
+  unique(c(paste0(sub("/+$", "", hits), substring(url, nchar(names(hits)) + 1L)), url))
+}
+
+fetch_url <- function(url, path = NULL, timeout = 120) {
+  request <- httr2::request(url) |>
     httr2::req_retry(max_tries = 3) |>
-    httr2::req_perform()
+    httr2::req_options(connecttimeout = 15) |>
+    httr2::req_timeout(timeout)
+  if (is.null(path)) httr2::req_perform(request) else httr2::req_perform(request, path = path)
+}
+
+# Try every candidate URL in order and return the first successful response.
+fetch_first <- function(url, path = NULL, timeout = 120) {
+  failures <- character()
+  for (candidate in candidate_urls(url)) {
+    response <- tryCatch(fetch_url(candidate, path, timeout), error = function(error) {
+      failures[[candidate]] <<- conditionMessage(error)
+      NULL
+    })
+    if (!is.null(response)) return(response)
+  }
+  if (!is.null(path)) unlink(path)
+  stop(errorCondition(paste0("Download failed:\n", paste0("  ", names(failures), ": ",
+                                                          gsub("\\s+", " ", failures), collapse = "\n")),
+                      class = "wdauto_download_error"))
 }
 
 response_json <- function(response) {
   jsonlite::fromJSON(httr2::resp_body_string(response), simplifyVector = FALSE)
 }
 
-find_chromedriver <- function(chrome) {
-  milestone <- as.integer(sub("\\..*$", "", chrome$version))
-  if (milestone <= 114L) {
+response_text <- function(response) {
+  bytes <- httr2::resp_body_raw(response)
+  # Microsoft serves some release files as UTF-16LE with a BOM.
+  text <- if (length(bytes) >= 2L && identical(as.integer(bytes[1:2]), c(255L, 254L))) {
+    iconv(list(bytes[-(1:2)]), from = "UTF-16LE", to = "UTF-8")
+  } else {
+    rawToChar(bytes)
+  }
+  trimws(text)
+}
+
+cft_root <- "https://googlechromelabs.github.io/chrome-for-testing"
+
+cft_download_url <- function(version, platform) {
+  paste0("https://storage.googleapis.com/chrome-for-testing-public/", version, "/", platform,
+         "/chromedriver-", platform, ".zip")
+}
+
+download_chromedriver <- function(chrome, archive) {
+  if (as.integer(chrome_milestone(chrome$version)) <= 114L) {
     root <- "https://chromedriver.storage.googleapis.com"
-    response <- driver_request(paste0(root, "/LATEST_RELEASE_", chrome_build(chrome$version)))
-    version <- trimws(httr2::resp_body_string(response))
+    version <- response_text(fetch_first(paste0(root, "/LATEST_RELEASE_", chrome_build(chrome$version)), timeout = 60))
     if (!is_chrome_version(version) || chrome_build(version) != chrome_build(chrome$version)) {
       stop("The legacy server returned an incompatible ChromeDriver version.", call. = FALSE)
     }
     # The legacy Windows archive is named win32 and supports 64-bit Chrome.
-    return(list(version = version, url = paste0(root, "/", version, "/chromedriver_win32.zip")))
+    fetch_first(paste0(root, "/", version, "/chromedriver_win32.zip"), archive)
+    return(invisible(version))
   }
-
-  root <- "https://googlechromelabs.github.io/chrome-for-testing"
-  builds <- response_json(driver_request(paste0(root, "/latest-patch-versions-per-build-with-downloads.json")))
-  build_release(chrome$version, chrome$platform, builds$builds, function() {
-    response_json(driver_request(paste0(root, "/latest-versions-per-milestone-with-downloads.json")))$milestones
+  # Chrome for Testing publishes a ChromeDriver for every Chrome release since M115,
+  # so the exact version is tried first without downloading the large metadata files.
+  direct <- tryCatch({
+    fetch_first(cft_download_url(chrome$version, chrome$platform), archive)
+    TRUE
+  }, wdauto_download_error = function(error) FALSE)
+  if (direct) return(invisible(chrome$version))
+  builds <- response_json(fetch_first(paste0(cft_root, "/latest-patch-versions-per-build-with-downloads.json"),
+                                      timeout = 60))
+  release <- build_release(chrome$version, chrome$platform, builds$builds, function() {
+    response_json(fetch_first(paste0(cft_root, "/latest-versions-per-milestone-with-downloads.json"),
+                              timeout = 60))$milestones
   })
+  fetch_first(release$url, archive)
+  invisible(release$version)
+}
+
+edgedriver_url <- function(version, platform) {
+  paste0("https://msedgedriver.microsoft.com/", version, "/edgedriver_", platform, ".zip")
+}
+
+download_edgedriver <- function(edge, archive) {
+  exact <- tryCatch({
+    fetch_first(edgedriver_url(edge$version, edge$platform), archive)
+    TRUE
+  }, wdauto_download_error = function(error) FALSE)
+  if (exact) return(invisible(edge$version))
+  endpoint <- paste0("https://msedgedriver.microsoft.com/LATEST_RELEASE_", chrome_milestone(edge$version), "_WINDOWS")
+  version <- response_text(fetch_first(endpoint, timeout = 60))
+  if (!driver_compatible(version, edge$version)) {
+    stop("Microsoft did not provide an EdgeDriver for Edge ", chrome_milestone(edge$version), ".", call. = FALSE)
+  }
+  fetch_first(edgedriver_url(version, edge$platform), archive)
+  invisible(version)
 }
 
 installed_driver_version <- function(path) {
@@ -105,86 +207,91 @@ installed_driver_version <- function(path) {
   if (is_chrome_version(found)) found else NA_character_
 }
 
+# Cached drivers live in <root>/<driver version>/<platform>/; older wdauto
+# releases used <root>/<milestone>/. Only the chosen candidate is executed.
 find_cached_driver <- function(root, chrome, executable = "chromedriver.exe") {
   if (!dir.exists(root)) return(NULL)
   files <- list.files(root, recursive = TRUE, full.names = TRUE)
   files <- files[tolower(basename(files)) == executable]
-  candidates <- files[basename(dirname(files)) %in% c(chrome$platform, sub("\\..*$", "", chrome$version))]
-  versions <- vapply(candidates, installed_driver_version, character(1))
-  matches <- which(!is.na(versions) & chrome_build(versions) == chrome_build(chrome$version))
-  if (!length(matches)) return(NULL)
-  candidates[matches[order(numeric_version(versions[matches]), decreasing = TRUE)[1L]]]
+  parent <- basename(dirname(files))
+  milestone <- chrome_milestone(chrome$version)
+  modern <- parent == chrome$platform & vapply(basename(dirname(dirname(files))), is_chrome_version, logical(1))
+  legacy <- parent == milestone
+  versions <- ifelse(modern, basename(dirname(dirname(files))), NA_character_)
+  versions[legacy] <- vapply(files[legacy], installed_driver_version, character(1))
+  keep <- !is.na(versions) & chrome_milestone(versions) == milestone
+  files <- files[keep]
+  versions <- versions[keep]
+  if (!length(files)) return(NULL)
+  exact <- chrome_build(versions) == chrome_build(chrome$version)
+  for (i in order(!exact, -xtfrm(numeric_version(versions)))) {
+    if (identical(installed_driver_version(files[[i]]), unname(versions[[i]]))) return(files[[i]])
+  }
+  NULL
 }
 
-ensure_browser_driver <- function(dest_dir, browser) {
-  chrome <- browser_installation(browser)
-  edge <- browser == "edge"
-  executable <- if (edge) "msedgedriver.exe" else "chromedriver.exe"
-  root <- file.path(dest_dir, sub("\\.exe$", "", executable))
-  cached <- find_cached_driver(root, chrome, executable)
-  if (!is.null(cached)) return(cached)
+driver_executable <- function(browser) if (browser == "edge") "msedgedriver.exe" else "chromedriver.exe"
 
-  release <- if (edge) find_edgedriver(chrome) else find_chromedriver(chrome)
-  target_dir <- prepare_directory(file.path(root, release$version, chrome$platform))
-  target <- file.path(target_dir, executable)
-  lock <- directory_lock(file.path(target_dir, ".download.lock"))
+ensure_browser_driver <- function(dest_dir, browser, zip = NULL) {
+  info <- browser_installation(browser)
+  executable <- driver_executable(browser)
+  root <- prepare_directory(file.path(dest_dir, sub("\\.exe$", "", executable)))
+  if (is.null(zip)) {
+    cached <- find_cached_driver(root, info, executable)
+    if (!is.null(cached)) return(cached)
+  } else if (!is.character(zip) || length(zip) != 1L || !file.exists(zip)) {
+    stop("zip must be the path of an existing driver archive.", call. = FALSE)
+  }
+  lock <- directory_lock(file.path(root, ".download.lock"))
   on.exit(filelock::unlock(lock))
-  if (file.exists(target) && isTRUE(chrome_build(installed_driver_version(target)) == chrome_build(release$version))) return(target)
+  if (is.null(zip)) {
+    cached <- find_cached_driver(root, info, executable)
+    if (!is.null(cached)) return(cached)
+  }
 
-  stage <- prepare_directory(tempfile(".driver-", tmpdir = target_dir))
+  stage <- prepare_directory(tempfile(".driver-", tmpdir = root))
   on.exit(unlink(stage, recursive = TRUE), add = TRUE)
-  zip <- file.path(stage, "driver.zip")
-  actual <- download_driver_archive(release, chrome, browser, zip)
-  entries <- utils::unzip(zip, list = TRUE)$Name
-  entry <- entries[tolower(basename(entries)) == executable]
-  if (length(entry) != 1L) stop("Driver archive does not contain exactly one ", executable, ".", call. = FALSE)
-  extracted <- utils::unzip(zip, files = entry, exdir = stage, junkpaths = TRUE)
-  if (length(extracted) != 1L || !file.exists(extracted)) {
-    stop("Could not extract ", executable, " from the driver archive.", call. = FALSE)
+  archive <- file.path(stage, "driver.zip")
+  if (!is.null(zip)) {
+    if (!file.copy(zip, archive)) stop("Cannot read driver archive: ", zip, call. = FALSE)
+  } else if (browser == "edge") {
+    download_edgedriver(info, archive)
+  } else {
+    download_chromedriver(info, archive)
   }
+  extracted <- extract_driver(archive, executable, stage)
   installed <- installed_driver_version(extracted)
-  valid <- if (edge) isTRUE(chrome_build(installed) == chrome_build(chrome$version)) else
-    identical(installed, actual$version)
-  if (!valid) {
-    stop("Downloaded ", executable, " failed version verification. Expected ", actual$version,
-         ", found ", if (is.na(installed)) "no version" else installed, ".", call. = FALSE)
+  if (!driver_compatible(installed, info$version)) {
+    stop(executable, " ", if (is.na(installed)) "with no version" else installed,
+         " does not match the installed browser ", info$version, ".", call. = FALSE)
   }
-  if (!file.rename(extracted, target)) stop("Could not install WebDriver at ", target, ".", call. = FALSE)
+  target <- file.path(prepare_directory(file.path(root, installed, info$platform)), executable)
+  if (!identical(installed_driver_version(target), installed)) {
+      if (!file.rename(extracted, target)) stop("Could not install WebDriver at ", target, ".", call. = FALSE)
+  }
+  prune_drivers(root, keep = installed)
   target
 }
 
-find_edgedriver <- function(edge, version = edge$version) {
-  list(version = version, url = paste0("https://msedgedriver.microsoft.com/", version,
-                                     "/edgedriver_", edge$platform, ".zip"))
+extract_driver <- function(archive, executable, exdir) {
+  entries <- tryCatch(utils::unzip(archive, list = TRUE)$Name, error = function(error) character())
+  entry <- entries[tolower(basename(entries)) == executable]
+  if (length(entry) != 1L) stop("Driver archive does not contain exactly one ", executable, ".", call. = FALSE)
+  extracted <- utils::unzip(archive, files = entry, exdir = exdir, junkpaths = TRUE)
+  if (length(extracted) != 1L || !file.exists(extracted)) {
+    stop("Could not extract ", executable, " from the driver archive.", call. = FALSE)
+  }
+  extracted
 }
 
-download_driver_archive <- function(release, browser_info, browser, zip) {
-  fetch <- function(url) {
-    httr2::request(url) |>
-      httr2::req_retry(max_tries = 3) |>
-      httr2::req_timeout(120) |>
-      httr2::req_perform(path = zip)
-  }
-  tryCatch({
-    fetch(release$url)
-    release
-  }, httr2_http_404 = function(error) {
-    if (browser != "edge") stop(error)
-    major <- sub("\\..*$", "", browser_info$version)
-    endpoint <- paste0("https://msedgedriver.microsoft.com/LATEST_RELEASE_", major, "_WINDOWS")
-    bytes <- httr2::resp_body_raw(driver_request(endpoint))
-    # Microsoft serves some release files as UTF-16LE with a BOM.
-    if (length(bytes) >= 2L && identical(as.integer(bytes[1:2]), c(255L, 254L))) {
-      version <- iconv(list(bytes[-(1:2)]), from = "UTF-16LE", to = "UTF-8")
-    } else {
-      version <- rawToChar(bytes)
-    }
-    if (!is_chrome_version(trimws(version)) || chrome_build(trimws(version)) != chrome_build(browser_info$version)) {
-      stop("Microsoft did not provide an EdgeDriver for Edge build ", chrome_build(browser_info$version), ".",
-           call. = FALSE)
-    }
-    fallback <- find_edgedriver(browser_info, trimws(version))
-    fetch(fallback$url)
-    fallback
-  })
+# Keep the newest driver versions; a driver that is still running cannot be
+# removed on Windows and is left for a later run.
+prune_drivers <- function(root, keep, versions_to_keep = 3L) {
+  folders <- list.dirs(root, full.names = TRUE, recursive = FALSE)
+  folders <- folders[vapply(basename(folders), is_chrome_version, logical(1))]
+  if (length(folders) <= versions_to_keep) return(invisible(NULL))
+  ordered <- folders[order(numeric_version(basename(folders)), decreasing = TRUE)]
+  stale <- setdiff(ordered[-seq_len(versions_to_keep)], file.path(root, keep))
+  unlink(stale, recursive = TRUE)
+  invisible(NULL)
 }

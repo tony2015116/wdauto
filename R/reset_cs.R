@@ -2,6 +2,10 @@
 
 #' Stop the managed browser driver and remove its login startup entry
 #'
+#' `reset_cs()` is the recovery tool: an unreadable process record or a
+#' process that cannot be verified produces a warning, and the startup entry
+#' is still removed.
+#'
 #' @param browser Browser to stop, either `chrome` or `edge`.
 #'
 #' @return Invisibly NULL.
@@ -16,21 +20,16 @@ reset_cs <- function(browser = c("chrome", "edge")) {
   on.exit(filelock::unlock(lock), add = TRUE)
 
   state_file <- file.path(state_dir, "service.rds")
-  handle <- owned_process(read_service_state(state_file))
-  if (!is.null(handle)) {
-    children <- tryCatch(ps::ps_children(handle, recursive = TRUE), no_such_process = function(error) list())
-    tryCatch(ps::ps_kill(handle), no_such_process = function(error) NULL)
-    for (child in children) {
-      tryCatch(ps::ps_kill(child), no_such_process = function(error) NULL)
-    }
-    if (!with_wait(function() !ps::ps_is_running(handle))) {
-      stop("Timed out waiting for managed WebDriver to stop.", call. = FALSE)
-    }
-  }
+  handle <- tryCatch(owned_process(read_service_state(state_file)), error = function(error) {
+    warning(conditionMessage(error), " No process was stopped.", call. = FALSE)
+    NULL
+  })
+  if (!is.null(handle)) stop_service(handle)
   if (unlink(state_file) != 0L) stop("Cannot remove wdauto process state: ", state_file, call. = FALSE)
-  batch <- startup_file(browser)
-  if (owned_startup(batch) && unlink(batch) != 0L) {
-    stop("Cannot remove the wdauto startup entry: ", batch, call. = FALSE)
+  for (entry in c(startup_file(browser), legacy_startup_file(browser))) {
+    if (owned_startup(entry) && unlink(entry) != 0L) {
+      stop("Cannot remove the wdauto startup entry: ", entry, call. = FALSE)
+    }
   }
   invisible(NULL)
 }

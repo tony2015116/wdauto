@@ -4,21 +4,37 @@
 \alias{auto_cs}
 \title{Start a local WebDriver service}
 \usage{
-auto_cs(dest_dir, autostart = TRUE, browser = c("chrome", "edge"))
+auto_cs(
+  dest_dir,
+  autostart = TRUE,
+  browser = c("chrome", "edge"),
+  backend = c("selenium", "chromedriver"),
+  restart = c("if_idle", "never")
+)
 }
 \arguments{
 \item{dest_dir}{Directory containing the WebDriver binaries.}
 
-\item{autostart}{Whether to install or update the Windows login startup entry.
-Use FALSE to start the service without writing a startup entry.}
+\item{autostart}{Whether to install or update the hidden Windows login
+startup entry. Use FALSE to start the service without writing it.}
 
 \item{browser}{Browser to manage, either \code{chrome} or \code{edge}.}
+
+\item{backend}{Chrome only. \code{"selenium"} runs Selenium Server 3.141.59 on
+Java, which also accepts the legacy JSON Wire protocol used by RSelenium.
+\code{"chromedriver"} runs ChromeDriver directly at the same address
+(W3C protocol only) and needs neither Java nor \code{get_ss()}.}
+
+\item{restart}{What to do when the running service uses a different driver,
+for example after a browser update. \code{"if_idle"} restarts it when it has
+no open sessions; \code{"never"} raises an error instead.}
 }
 \value{
 Invisibly NULL once the service is ready.
 }
 \description{
-Start a local WebDriver service
+Starts, or reuses, the managed WebDriver service for one browser. Chrome is
+served at \verb{127.0.0.1:4444/wd/hub} and Edge at \verb{127.0.0.1:4445}.
 }
 \examples{
 \dontrun{auto_cs("C:/pptsdd-webdriver")}
