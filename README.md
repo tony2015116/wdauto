@@ -2,7 +2,7 @@
 
 <!-- badges: start -->
 [![Windows](https://badgen.net/badge/icon/windows?icon=windows&label)](https://microsoft.com/windows/)
-[![GitHub R package version](https://img.shields.io/github/r-package/v/tony2015116/wdauto)](DESCRIPTION)
+[![GitHub R package version](https://img.shields.io/github/r-package/v/tony2015116/wdauto)](https://github.com/tony2015116/wdauto/blob/main/DESCRIPTION)
 [![GitHub last commit](https://img.shields.io/github/last-commit/tony2015116/wdauto)](https://github.com/tony2015116/wdauto/commits/main/)
 <!-- badges: end -->
 
@@ -12,6 +12,11 @@ It runs on x86 and x64 Windows with R 4.1 or newer and the selected browser inst
 Chrome runs through ChromeDriver with `backend = "chromedriver"` (no Java needed, used by
 tidypptsdd), or through Selenium Server 3.141.59 on Java for RSelenium clients (the default).
 Edge uses Microsoft Edge WebDriver directly.
+
+[Get started](https://tony2015116.github.io/wdauto/articles/wdauto.html) ·
+[中文使用说明](https://tony2015116.github.io/wdauto/articles/wdauto-zh.html) ·
+[Cheatsheet](https://tony2015116.github.io/wdauto/cheatsheet.html) ·
+[速查表](https://tony2015116.github.io/wdauto/cheatsheet-zh.html)
 
 ## Installation
 
@@ -25,7 +30,7 @@ pak::pkg_install("tony2015116/wdauto")
 ```r
 library(wdauto)
 
-driver_dir <- "C:/pptsdd-webdriver"
+driver_dir <- "C:/webdriver"
 get_cd(driver_dir)
 get_ss(driver_dir)
 auto_cs(driver_dir)

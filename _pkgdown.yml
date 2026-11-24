@@ -1,58 +1,69 @@
 url: https://tony2015116.github.io/wdauto/
+
 template:
-  bslib:
-    pkgdown-nav-height: 100px
-  package: preferably
-  params:
-    toggle: manual
-#lang: zh_CN
+  bootstrap: 5
+  bootswatch: cosmo
+  theme: arrow-dark            # syntax highlighting of code blocks
+
 home:
+  title: "wdauto: Local WebDriver Service for Chrome and Edge on Windows"
+  description: >
+    Download the WebDriver that matches the installed Chrome or Edge, start a
+    managed local service at login, restart it after browser updates, and
+    work behind slow or blocked networks with mirrors and offline archives.
   links:
-  # - text: GitHub Repo
-    # href: https://github.com/wviechtb/metafor
-  # - text: Browse source code
-  #   href: https://github.com/tony2015116/tidypptsdd
-  # - text: Report a bug
-  #   href: https://github.com/tony2015116/tidypptsdd/issues
-  - text: Author Website
+  - text: Author website
     href: https://www.rusersplace.com
 
 navbar:
-  left:
-    - text: "Introduction"
-      href: articles/basic-usage.html
-    - text: "Functions"
-      href: reference/index.html
-    - text: "Articles"
+  structure:
+    left:  [intro, zh, reference, articles, cheatsheet, news]
+    right: [search, github, discussions]
+  components:
+    zh:
+      text: 中文说明
+      href: articles/wdauto-zh.html
+      aria-label: 中文使用说明
+    cheatsheet:
+      text: Cheatsheet
+      icon: fas fa-file-alt
+      aria-label: Cheatsheet
       menu:
-      - text: "Get started"
-        href: articles/basic-usage.html
-    - text: "Changelog"
-      href: news/index.html
-  right:
-    # - icon: fa-twitter fa-lg
-    #   href: https://twitter.com/tonyituite
-    - icon: fab fa-github fa-lg
+      - text: English
+        href: cheatsheet.html
+      - text: 中文
+        href: cheatsheet-zh.html
+    github:
+      icon: fab fa-github fa-lg
       href: https://github.com/tony2015116/wdauto
-    - icon: fa-users
+      aria-label: GitHub
+    discussions:
+      icon: fas fa-users fa-lg
       href: https://github.com/tony2015116/wdauto/discussions
+      aria-label: Discussions
+
+# vignettes/wdauto.Rmd is the "Get started" page.
+articles:
+- title: 中文
+  navbar: 中文
+  contents:
+  - articles/wdauto-zh
 
 reference:
-  - title: download function
-    desc: download chromedriver and selenium server
-    contents:
-      - get_cd
-      - get_ss
-  - title: wbauto function
-    desc: start selenium webdriver service
-    contents:
-      - auto_cs
-  - title: reset function
-    desc: reset selenium webdriver
-    contents:
-      - reset_cs
+- title: Drivers and servers
+  desc: >
+    Download the WebDriver that matches the installed browser, and the
+    Selenium Server used by the default Chrome backend.
+  contents:
+  - get_cd
+  - get_ss
+- title: Service
+  desc: >
+    Start or reuse the managed local service, keep it running at login, and
+    stop it again.
+  contents:
+  - auto_cs
+  - reset_cs
 
 news:
-  releases:
-  - text: "wdauto 0.1.1"
-    href: https://github.com/tony2015116/wdauto/releases/tag/v0.1.1
+  cran_dates: false

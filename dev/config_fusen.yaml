@@ -7,10 +7,10 @@ flat_teaching.Rmd:
   - R/get_ss.R
   - R/reset_cs.R
   tests: []
-  vignettes: vignettes/basic-usage.Rmd
+  vignettes: []
   inflate:
     flat_file: dev/flat_teaching.Rmd
-    vignette_name: Basic Usage
+    vignette_name: .na
     open_vignette: true
     check: true
     document: true
