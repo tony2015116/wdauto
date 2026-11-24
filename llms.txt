@@ -1,0 +1,155 @@
+# wdauto
+
+`wdauto` prepares and starts the local WebDriver service used by
+[tidypptsdd](https://github.com/tony2015116/tidypptsdd) to download
+reports through Chrome or Edge. It runs on x86 and x64 Windows with R
+4.1 or newer and the selected browser installed. Chrome runs through
+ChromeDriver with `backend = "chromedriver"` (no Java needed, used by
+tidypptsdd), or through Selenium Server 3.141.59 on Java for RSelenium
+clients (the default). Edge uses Microsoft Edge WebDriver directly.
+
+[Get started](https://tony2015116.github.io/wdauto/articles/wdauto.html)
+·
+[中文使用说明](https://tony2015116.github.io/wdauto/articles/wdauto-zh.html)
+· [Cheatsheet](https://tony2015116.github.io/wdauto/cheatsheet.html) ·
+[速查表](https://tony2015116.github.io/wdauto/cheatsheet-zh.html)
+
+## Installation
+
+``` r
+
+install.packages("pak")
+pak::pkg_install("tony2015116/wdauto")
+```
+
+## Start or reuse Chrome
+
+``` r
+
+library(wdauto)
+
+driver_dir <- "C:/webdriver"
+get_cd(driver_dir)
+get_ss(driver_dir)
+auto_cs(driver_dir)
+```
+
+[`get_cd()`](https://tony2015116.github.io/wdauto/reference/get_cd.md)
+matches the installed Chrome milestone and Windows platform and reuses a
+cached driver without network access.
+[`get_ss()`](https://tony2015116.github.io/wdauto/reference/get_ss.md)
+prepares the Selenium 3.141.59 standalone server, which accepts the
+legacy JSON Wire protocol used by RSelenium.
+[`auto_cs()`](https://tony2015116.github.io/wdauto/reference/auto_cs.md)
+waits for the service at `127.0.0.1:4444/wd/hub` to accept connections.
+Repeated calls reuse the running managed service.
+
+Clients that speak the W3C protocol can skip Java and Selenium:
+
+``` r
+
+get_cd(driver_dir)
+auto_cs(driver_dir, backend = "chromedriver")
+```
+
+ChromeDriver then serves the same address, `127.0.0.1:4444/wd/hub`.
+
+## Start or reuse Edge
+
+``` r
+
+get_cd(driver_dir, browser = "edge")
+auto_cs(driver_dir, browser = "edge")
+```
+
+Edge uses a separate service at `127.0.0.1:4445` and its own login
+startup entry. Select Edge in both the startup and download calls in
+tidypptsdd.
+
+## Downloads in mainland China or offline
+
+Driver and Selenium downloads try a mirror first and fall back to the
+official servers:
+
+``` r
+
+options(wdauto.mirror = "npmmirror")   # or Sys.setenv(WDAUTO_MIRROR = "npmmirror")
+get_cd(driver_dir)
+```
+
+Any other mirror can be given as URL prefix replacements, for example
+`options(wdauto.mirror = c("https://storage.googleapis.com/chrome-for-testing-public" = "https://my.mirror/cft"))`.
+The option in effect when
+[`auto_cs()`](https://tony2015116.github.io/wdauto/reference/auto_cs.md)
+writes the startup entry is reused at login. Without network access,
+install archives that were downloaded on another computer:
+
+``` r
+
+get_cd(driver_dir, zip = "chromedriver-win64.zip")
+get_ss(driver_dir, jar = "selenium-server-standalone-3.141.59.jar")
+```
+
+## Login startup and browser updates
+
+By default
+[`auto_cs()`](https://tony2015116.github.io/wdauto/reference/auto_cs.md)
+installs or updates a hidden login startup entry (`wdauto_chrome.vbs` or
+`wdauto_edge.vbs` in the current user’s Startup folder). Pass
+`autostart = FALSE` for a one-time start. At login the driver is
+resolved again and the start is retried for about two minutes while the
+network comes up. Entries written by earlier wdauto releases are
+replaced.
+
+When the browser updates while the service is running, the next
+[`auto_cs()`](https://tony2015116.github.io/wdauto/reference/auto_cs.md)
+call restarts the service with the new driver if no session is open.
+Pass `restart = "never"` to get an error instead.
+
+## Stop or troubleshoot the service
+
+Run
+[`reset_cs()`](https://tony2015116.github.io/wdauto/reference/reset_cs.md)
+to stop the managed service and remove its login startup entry for
+Chrome. For Edge, use `reset_cs(browser = "edge")`.
+[`reset_cs()`](https://tony2015116.github.io/wdauto/reference/reset_cs.md)
+still removes the startup entry when the process record is damaged.
+
+The service logs are in `%LOCALAPPDATA%/wdauto/webdriver-*/`; the five
+newest are kept. The login launcher writes to
+`%LOCALAPPDATA%/wdauto/startup.log` for Chrome, or to
+`%LOCALAPPDATA%/wdauto/edge/startup.log` for Edge. If port 4444 is
+already in use after upgrading from an older version, stop the previous
+Selenium process before starting the new one.
+
+# Package index
+
+## Drivers and servers
+
+Download the WebDriver that matches the installed browser, and the
+Selenium Server used by the default Chrome backend.
+
+- [`get_cd()`](https://tony2015116.github.io/wdauto/reference/get_cd.md)
+  : Download a browser WebDriver
+- [`get_ss()`](https://tony2015116.github.io/wdauto/reference/get_ss.md)
+  : Download Selenium Server
+
+## Service
+
+Start or reuse the managed local service, keep it running at login, and
+stop it again.
+
+- [`auto_cs()`](https://tony2015116.github.io/wdauto/reference/auto_cs.md)
+  : Start a local WebDriver service
+- [`reset_cs()`](https://tony2015116.github.io/wdauto/reference/reset_cs.md)
+  : Stop the managed browser driver and remove its login startup entry
+
+# Articles
+
+### 中文
+
+- [wdauto
+  中文使用说明](https://tony2015116.github.io/wdauto/articles/wdauto-zh.md):
+
+  在 Windows 上为 Chrome 和 Edge 准备并启动本机 WebDriver
+  服务：下载匹配的驱动、开机自启、浏览器升级后自动重启、国内镜像与离线安装。
